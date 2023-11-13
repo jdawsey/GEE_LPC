@@ -1,0 +1,234 @@
+---
+title: "gee_javascript_test"
+author: "Justin Dawsey"
+date: "2023-11-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+###ee_install()
+
+library(rgee)
+library(rgeeExtra)
+library(reticulate)
+
+# Initialize Earth Engine and GD
+ee_Initialize(drive=TRUE)
+
+```
+
+
+```{r}
+
+#Example
+landsat <- ee$Image('LANDSAT/LT04/C01/T1/LT04_008067_19890917')
+
+visParam <- list(bands <- c('B5', 'B4', 'B3'),
+  min= 0,
+  max= 128,
+  gamma = c(0.95, 1.1, 1)
+  )
+
+Map$setCenter(lon=-77.20, lat=-9.85, zoom=10)
+m1 <- Map$addLayer(landsat, visParams= visParam, name="SRTM", shown=TRUE)
+
+m1
+```
+
+
+```{r}
+
+shp <- ee$FeatureCollection('users/jdawsey/assets/20km_buffer')
+
+lsYear <- ee$ImageCollection('LANDSAT/LT05/C02/T1') %>%
+      ee$ImageCollection$filterDate(ee$Date('1990-06-01'), 
+                                    ee$Date('1990-09-30')) %>%
+      ee$ImageCollection$filterBounds(shp)
+
+composite <- ee$Algorithms$Landsat$simpleComposite(lsYear)
+clip <- composite$clip(shp)
+###
+
+### visibility parameters for the color image
+visParam <- list(bands <- c('B3', 'B2', 'B1'),
+  min= 0,
+  max= 128,
+  gamma = 1.5
+  )
+
+# centering and adding to map -- returning as white for some gd reason
+Map$centerObject(shp)
+Map$addLayer(clip, visParams= visParam)
+```
+
+May work better than the simple composite algorithm
+
+```{r}
+
+### ...May work better than the above algorithm
+composite <- ee$Algorithms$Landsat$simpleComposite(
+  collection = lsYear,
+  percentile = 70,
+  cloudScoreRange = 5
+)
+clip <- composite$clip(shp)
+###
+
+### visibility parameters for the color image
+visParam <- list(bands <- c('B3', 'B2', 'B1'),
+  min= 0,
+  max= 128,
+  gamma = 1.5
+  )
+
+# centering and adding to map -- returning as white for some gd reason
+Map$centerObject(shp)
+Map$addLayer(clip, visParams= visParam)
+```
+
+Adding indices for additional possible accuracy,
+
+```{r}
+
+```
+
+Running a correlation test on the bands and indices. May be worth running a PCA analysis.
+
+```{r}
+
+```
+
+```{python}
+import ee
+
+# applies scaling factors
+def apply_scale_factors(image):
+  optical_bands = image.select('SR_B.').multiply(0.0000275).add(-0.2)
+  thermal_bands = image.select('ST_B6').multiply(0.00341802).add(149.0)
+  return image.addBands(optical_bands, None, True).addBands(
+      thermal_bands, None, True)
+  
+```
+
+Normalization (if I can get it to work)
+
+```{r}
+#setting up to normalize -- doesn't work yet
+
+meanImage <- mean(clip)
+stdDevImage <- clip$reduce(ee$Reducer$stdDev())
+coeffVarImage <- meanImage$divide(stdDevImage)
+
+#// Subtract every coefficient of variance by band for
+#// every image in the collection
+normalized = clip$subtract(coeffVarImage) %>% 
+    clip$copyProperties(clip)
+
+visParamNorm <- list(bands <- c('B3', 'B2', 'B1'),
+  min= 0,
+  max= 1,
+  gamma = 1.5
+  )
+
+Map$addLayer(normalized, visParams = visParamNorm)
+###
+```
+
+Sharpening and smoothing
+
+```{r}
+### DoG sharpening
+fat <- ee$Kernel$gaussian(
+  radius = 3,
+  sigma = 3,
+  magnitude = -1.0,
+  units = 'pixels'
+)
+
+skinny <- ee$Kernel$gaussian(
+  radius = 3,
+  sigma = 0.5,
+  units = 'pixels'
+)
+
+dog <- fat$add(skinny)
+sharpened <- clip$add(clip$convolve(dog))
+###
+
+### gaussian smoothing
+gaussianKernel <- ee$Kernel$gaussian(
+  radius = 3,
+  units = 'pixels'
+)
+
+gauss <- sharpened$convolve(gaussianKernel)
+###
+
+### adding the sharpened then smoothed image to the map
+Map$addLayer(gauss, visParams = visParam)
+```
+
+Training the classification algorithm and showing the display parameters
+
+```{r}
+
+### creating training samples for the unsupervised classification
+training <- gauss$sample(
+  region = shp,
+  scale = 30, #change per resolution
+  numPixels = 10000
+)
+###
+
+### the actual classification function
+clusterer <- ee$Clusterer$wekaKMeans(10) %>% # change clusters depending on imagery
+  ee$Clusterer$train(training)
+
+result <- gauss$cluster(clusterer)
+###
+
+### creating a landcover pallete to view the result
+landcoverPalette <- c(
+  '#00a944', 
+  '#d6d6d6', 
+  '#c65b8d', 
+  '#ded132', 
+  '#ff3434', 
+  '#5bb48f', 
+  '#47f37c', 
+  '#7c0000', 
+  '#ded132', 
+  '#5bb48f', 
+  '#b0ffa7', 
+  '#778bff'
+)
+
+visPalette <- list(
+  min= 0,
+  max= 9, # change depending on number of clusters
+  palette = landcoverPalette
+  )
+###
+
+### adding maps to compare
+classified <- Map$addLayer(result, visParams = visPalette)
+imageryMap <- Map$addLayer(clip, visParams= visParam)
+###
+```
+
+Displaying the maps
+
+```{r}
+### showing the maps
+classified | imageryMap
+```
