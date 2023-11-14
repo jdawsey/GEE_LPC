@@ -346,7 +346,20 @@ Downloading the classified map
 ```{r}
 shp_geo <- shp$geometry()
 
+drive_image <- ee_image_to_drive(
+  image = result,
+  description = "export",
+  folder = "!imagery",
+  region = shp_geo,
+  scale = 1,
+  maxPixels = 155232114715
+)
 
+drive_image$start()
+```
+
+If exporting to r
+```{r}
 naipNM_2009 <- ee_as_raster( #change name depending on raster to be downloaded
   image = result,
   region = shp_geo,
