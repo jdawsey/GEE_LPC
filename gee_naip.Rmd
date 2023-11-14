@@ -84,7 +84,7 @@ stats <- clip$reduceRegion(
     sharedInputs = TRUE
   ),
   geometry = shp,
-  scale = 0.6,
+  scale = 1,
   bestEffort = TRUE # Use maxPixels if you care about scale.
 )
 
@@ -172,7 +172,7 @@ stats <- normalized$reduceRegion(
     sharedInputs = TRUE
   ),
   geometry = shp,
-  scale = 0.6,
+  scale = 1,
   bestEffort = TRUE # Use maxPixels if you care about scale.
 )
 
@@ -234,8 +234,8 @@ Training the classification algorithm and showing the display parameters
 ### creating training samples for the unsupervised classification
 training <- gauss$sample(
   region = shp,
-  scale = 0.6, #change per resolution
-  numPixels = 10000
+  scale = 1, #change per resolution
+  numPixels = 7500
 )
 ###
 
@@ -291,12 +291,28 @@ Downloading the classified map
 ```{r}
 shp_geo <- shp$geometry()
 
+drive_image <- ee_image_to_drive(
+  image = result,
+  description = "export_2009",
+  folder = "nm_naip_2009",
+  region = shp_geo,
+  scale = 1,
+  maxPixels = 155232114715
+)
+
+drive_image$start()
+```
+
+
+
+```{r}
+
 
 naipNM_2009 <- ee_as_raster( #change name depending on raster to be downloaded
   image = result,
   region = shp_geo,
   dsn = "naipNM_2009.tif", # change for your own path.
-  scale = 0.6,
+  scale = 1,
   maxPixels = 155232114715
 )
 ```
