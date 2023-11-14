@@ -1,0 +1,302 @@
+---
+title: "gee_javascript_test"
+author: "Justin Dawsey"
+date: "2023-11-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+###ee_install()
+
+library(rgee)
+library(rgeeExtra)
+library(reticulate)
+
+# Initialize Earth Engine and GD
+ee_Initialize(drive=TRUE)
+
+```
+
+
+```{r}
+
+#Example
+landsat <- ee$Image('LANDSAT/LT04/C01/T1/LT04_008067_19890917')
+
+visParam <- list(bands <- c('B5', 'B4', 'B3'),
+  min= 0,
+  max= 128,
+  gamma = c(0.95, 1.1, 1)
+  )
+
+Map$setCenter(lon=-77.20, lat=-9.85, zoom=10)
+m1 <- Map$addLayer(landsat, visParams= visParam, name="SRTM", shown=TRUE)
+
+m1
+```
+
+
+```{r}
+### change the feature collection to your boundary asset location
+shp <- ee$FeatureCollection('users/jdawsey/assets/20km_nm')
+
+### choose your imagery and the dates for it
+year <- ee$ImageCollection('USDA/NAIP/DOQQ') %>%
+      ee$ImageCollection$filterDate(ee$Date('2009-01-01'), 
+                                    ee$Date('2009-12-31')) %>%
+      ee$ImageCollection$filterBounds(shp)
+
+# mosaic the collection into a single image
+year <- year$mosaic()
+
+### clipping to shape
+clip <- year$clip(shp)
+###
+
+### visibility parameters for the color image
+visParam <- list(bands <- c('R', 'G', 'B'),
+  gamma = 1
+  )
+
+# centering and adding to map to check that it's visualizing properly
+Map$centerObject(shp)
+Map$addLayer(clip, visParams= visParam)
+```
+
+Normalization
+
+```{r}
+#setting up to normalize -- doesn't work yet
+# Get mean and SD in every band by combining reducers.
+stats <- clip$reduceRegion(
+  reducer = ee$Reducer$mean()$combine(
+    reducer2 = ee$Reducer$stdDev(),
+    sharedInputs = TRUE
+  ),
+  geometry = shp,
+  scale = 0.6,
+  bestEffort = TRUE # Use maxPixels if you care about scale.
+)
+
+#print(stats$getInfo())
+
+# Extract means and SDs to images.
+meansImage <- stats$toImage()$select('.*_mean')
+sdsImage <- stats$toImage()$select('.*_stdDev')
+coeffVarImage <- meansImage$divide(sdsImage)
+
+normalized = clip$subtract(coeffVarImage)
+
+
+######## Visualize if wanted ################
+#visParamNorm <- list(bands <- c('R', 'G', 'B'),
+#  min= 0,
+#  max= 255
+#  )
+
+# Map$addLayer(normalized, visParams = visParamNorm)
+###
+```
+Adding indices for additional possible accuracy
+
+https://isprs-archives.copernicus.org/articles/XLII-3/1215/2018/isprs-archives-XLII-3-1215-2018.pdf
+EVALUATION OF RGB-BASED VEGETATION INDICES FROM UAV IMAGERY TO
+ESTIMATE FORAGE YIELD IN GRASSLAND
+
+VARI:
+Gitelson AA, Vina A, Arkebauer TJ, Rundquist DC, Keydan G, Leavitt B. Remote estimation of leaf area index and green leaf biomass in maize canopies. Geophys Res Lett. 2003;30(30):335–43. https://doi.org/10.1029/2002gl016450.
+
+```{r}
+#Doesn't work for NM 2009 -- see "check bands"
+#band_names <- normalized$bandNames()
+#print(band_names$get(4)$getInfo())
+
+rgb_vari <- function(image_given) {
+  image_bands <- image_given$select(c("R", "G", "B"))
+  
+  #ndvi <- normalized$normalizedDifference(c('N', 'R'))$rename('ndvi')
+  #image_give <- image_given$addBands(vari)
+  image <- image_bands
+  
+  vari <- image$expression(
+    expression = '(G - R) / (G + R - B)',
+    opt_map =  list(
+        'G' = image$select('G'),
+        'R' = image$select('R'),
+        'B' = image$select('B')
+        )
+    )$rename('vari')
+  return(vari)
+}
+
+vari <- rgb_vari(normalized)
+
+################### checking the equation ###############
+# vari_param <- list(bands = 'vari',
+#                   min = 0,
+#                   max = 1)
+# vari_map <- Map$addLayer(vari, vari_param, 'vari')
+# vari_map
+
+# adding vari as a band to use
+normalized <- normalized$addBands(vari)
+# checking to make sure the band was added
+band_names <- normalized$bandNames()
+print(band_names$get(3)$getInfo()) 
+```
+
+Running a correlation test on the bands and indices. May be worth running a PCA analysis.
+
+```{r}
+# not needed for naip imagery without NIR band
+```
+
+Re-normalizing
+
+```{r}
+#setting up to normalize -- doesn't work yet
+# Get mean and SD in every band by combining reducers.
+stats <- normalized$reduceRegion(
+  reducer = ee$Reducer$mean()$combine(
+    reducer2 = ee$Reducer$stdDev(),
+    sharedInputs = TRUE
+  ),
+  geometry = shp,
+  scale = 0.6,
+  bestEffort = TRUE # Use maxPixels if you care about scale.
+)
+
+#print(stats$getInfo())
+
+# Extract means and SDs to images.
+meansImage <- stats$toImage()$select('.*_mean')
+sdsImage <- stats$toImage()$select('.*_stdDev')
+coeffVarImage <- meansImage$divide(sdsImage)
+
+normalized = normalized$subtract(coeffVarImage)
+```
+
+
+
+Sharpening and smoothing
+
+```{r}
+### DoG sharpening
+fat <- ee$Kernel$gaussian(
+  radius = 3,
+  sigma = 3,
+  magnitude = -1.0,
+  units = 'pixels'
+)
+
+skinny <- ee$Kernel$gaussian(
+  radius = 3,
+  sigma = 0.5,
+  units = 'pixels'
+)
+
+dog <- fat$add(skinny)
+sharpened <- normalized$add(normalized$convolve(dog))
+###
+
+### gaussian smoothing
+gaussianKernel <- ee$Kernel$gaussian(
+  radius = 3,
+  units = 'pixels'
+)
+
+gauss <- sharpened$convolve(gaussianKernel)
+###
+
+visParamGauss <- list(bands <- c('R', 'G', 'B'),
+  min= 0,
+  max= 255
+  )
+
+### checking that image was smoothed
+#Map$addLayer(gauss, visParams = visParamGauss)
+```
+
+Training the classification algorithm and showing the display parameters
+
+```{r}
+
+### creating training samples for the unsupervised classification
+training <- gauss$sample(
+  region = shp,
+  scale = 0.6, #change per resolution
+  numPixels = 10000
+)
+###
+
+### the actual classification function
+clusterer <- ee$Clusterer$wekaKMeans(15) %>% # change clusters depending on imagery
+  ee$Clusterer$train(training)
+
+result <- gauss$cluster(clusterer)
+###
+
+### creating a landcover palette to view the result
+landcoverPalette <- c(
+  '#00a944', 
+  '#d6d6d6', 
+  '#c65b8d', 
+  '#ded132', 
+  '#ff3434', 
+  '#5bb48f', 
+  '#47f37c', 
+  '#c04848', 
+  '#ded132', 
+  '#5bb48f', 
+  '#0f0077', 
+  '#778bff',
+  '#8f8f8f',
+  '#000000',
+  '#d9a300'
+  
+)
+
+visPalette <- list(
+  min= 0,
+  max= 14, # change depending on number of clusters
+  palette = landcoverPalette
+  )
+###
+
+### adding maps to compare
+classified <- Map$addLayer(result, visParams = visPalette)
+imageryMap <- Map$addLayer(clip, visParams= visParam)
+###
+```
+
+Displaying the maps
+
+```{r}
+### showing the maps
+classified | imageryMap
+```
+
+Downloading the classified map
+
+```{r}
+shp_geo <- shp$geometry()
+
+
+naipNM_2009 <- ee_as_raster( #change name depending on raster to be downloaded
+  image = result,
+  region = shp_geo,
+  dsn = "naipNM_2009.tif", # change for your own path.
+  scale = 0.6,
+  maxPixels = 155232114715
+)
+```
