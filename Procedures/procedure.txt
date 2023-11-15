@@ -1,0 +1,81 @@
+################################
+			Buffer creation
+################################
+In QGIS
+
+Import leks
+
+Create minimum bounding geometry -- 
+  - constraining = leks
+  - geometry = convex hull
+
+Create random points
+ - constraining = bounding geometry
+ - number points = 50
+ - minimum allowed distance = 10 km
+
+Buffer each of the random points
+ - 5 km radius
+ - export
+ - (or export as geojson)
+
+Split buffers by string attribute (may have to create)
+ - save to temp file
+ - remove unsplit buffer
+ - add buffers back to map from temp file
+	
+finally - write in console ("ctrl + alt + p" to access):
+>>>for vLayer in iface.mapCanvas().layers():
+    QgsVectorFileWriter.writeAsVectorFormat( vLayer, fileName = "C:/Users/Justin/Desktop/mesquite/mesq_jsons_work/" + vLayer.name() + ".geojson", fileEncoding = "utf-8", driverName = "GeoJSON", skipAttributeCreation = True)
+
+################################
+			Sampling method
+################################
+
+For each buffer:
+ - classify and identify mesquite
+ 
+- create points within centroids of cell clusters
+
+ - import data for each buffer:
+	- soil
+	- slope
+	- pi of each landcover
+
+For each centroid point:
+ - add area of mesquite cluster as attribute of each centroid point
+ 
+- append data to centroid points:
+	- soil
+	- slope
+	- pi of each landcover
+	- bioclim - temp and precip
+
+ - for each individual centroid point:
+	- dist nearest road
+	- dist nearest mesquite
+	- type surrounding habitat
+
+
+################################
+			Analysis method
+################################
+Create correlation matrix and check if normal
+
+Multivariate regression:
+ - compare number of mesquite in buffer to:
+	- soil clay content, depth, and area of each class
+	- soil sand content, depth, and area of each class
+	- slope
+	- pi
+	- latitude
+	- temperature
+	- precipitation
+ 
+- overall proximity of mesquite to:
+	- roads
+	- other mesquite
+
+Regression comparing:
+ - number of mesquite in buffer to:
+	- area of each soil type
