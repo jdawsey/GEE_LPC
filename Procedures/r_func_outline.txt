@@ -1,0 +1,10 @@
+https://stackoverflow.com/questions/13548266/define-all-functions-in-one-r-file-call-them-from-another-r-file-how-if-pos
+
+
+Create seperate file that contains the function wanting to be used to mass-download imagery
+
+
+If not already a function then turn into one.
+
+
+Make sure to add parameters for each function.

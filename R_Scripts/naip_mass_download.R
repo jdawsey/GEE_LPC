@@ -1,21 +1,3 @@
----
-title: "mesq_samp_naip"
-author: "Justin Dawsey"
-date: "2023-11-08"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r}
 ###ee_install()
 
 #library(rgee)
@@ -25,9 +7,7 @@ When you click the **Knit** button a document will be generated that includes bo
 # Initialize Earth Engine and GD
 #ee_Initialize(drive=TRUE)
 
-```
 
-```{r}
 library(sf)
 library(sp)
 library(geojsonsf)
@@ -52,10 +32,9 @@ file_address_func <- function(file_given) {
 
 listy <- file_address_func(files_list)
 #listy
-```
 
 
-```{r}
+
 # generating names for each object to assign an sf value
 object_names <- function(given_list) {
   ob_list <- list()
@@ -72,11 +51,9 @@ object_names <- function(given_list) {
 
 ob_names <- object_names(files_list)
 #ob_names
-```
 
 
 
-```{r}
 # creating a function to save all the geojsons to sf objects
 rng <- 1:length(listy)
 geo_json_func <- function(given_list, given_range) {
@@ -104,7 +81,7 @@ ee_list_func <- function(given_json_list, given_range) {
                            assetID = ob_names[[item]]
                          ),
                          after = length(eeItemList)
-                         )
+    )
     
   }
   return(eeItemList)
@@ -113,27 +90,17 @@ ee_list_func <- function(given_json_list, given_range) {
 eeItemList <- ee_list_func(json_list, rng)
 #eeItemList
 
-```
-# ###############################################
-# ###############################################
-# ###############################################
-# ###############################################
-# ###############################################
 
-Loading the NAIP Imagery
 
-Years - NM - 2009 (1m RGB), 2011 (1m), 2014 (1m), 2016 (1m), 2018, 2020, 2022
-      - TX - 2004 (1m NRG), 2008 (1m NRG), 2010 (1m) , 2012 (1m), 2014 (1m), 2016 (1m), 2018, 2020, 2022
 
-```{r}
 ### change the feature collection to your boundary asset location
-shp <- eeItemList[[10]] # change per buffer - already ran 10 ---###########havent run 11 yet
+shp <- eeItemList[[10]] # change per buffer
 
 ### choose your imagery and the dates for it
 year <- ee$ImageCollection('USDA/NAIP/DOQQ') %>%
-      ee$ImageCollection$filterDate(ee$Date('2014-01-01'), 
-                                    ee$Date('2014-12-31')) %>%
-      ee$ImageCollection$filterBounds(shp)
+  ee$ImageCollection$filterDate(ee$Date('2014-01-01'), 
+                                ee$Date('2014-12-31')) %>%
+  ee$ImageCollection$filterBounds(shp)
 
 # mosaic the collection into a single image
 year <- year$mosaic()
@@ -144,17 +111,14 @@ clip <- year$clip(shp)
 
 ### visibility parameters for the color image
 visParam <- list(bands <- c('R', 'G', 'B'),
-  gamma = 1
-  )
+                 gamma = 1
+)
 
 # centering and adding to map to check that it's visualizing properly
 #Map$centerObject(shp)
 #Map$addLayer(clip, visParams= visParam)
-```
 
-Normalization
 
-```{r}
 
 # Get mean and SD in every band by combining reducers.
 stats <- clip$reduceRegion(
@@ -185,20 +149,10 @@ normalized = clip$subtract(coeffVarImage)
 
 # Map$addLayer(normalized, visParams = visParamNorm)
 ###
-```
 
-Adding indices for additional possible accuracy
 
-https://isprs-archives.copernicus.org/articles/XLII-3/1215/2018/isprs-archives-XLII-3-1215-2018.pdf
-EVALUATION OF RGB-BASED VEGETATION INDICES FROM UAV IMAGERY TO
-ESTIMATE FORAGE YIELD IN GRASSLAND
 
-VARI (Visible Atmospherically Resistant Index):
-Gitelson AA, Vina A, Arkebauer TJ, Rundquist DC, Keydan G, Leavitt B. Remote estimation of leaf area index and green leaf biomass in maize canopies. Geophys Res Lett. 2003;30(30):335–43. https://doi.org/10.1029/2002gl016450.
 
-# Commenting out since have NIR band
-
-```{r}
 #Doesn't work for NM 2009 -- see "check bands"
 #band_names <- normalized$bandNames()
 #print(band_names$get(4)$getInfo())
@@ -210,11 +164,11 @@ rgb_vari <- function(image_given) {
   vari <- image$expression(
     expression = '(G - R) / (G + R - B)',
     opt_map =  list(
-        'G' = image$select('G'),
-        'R' = image$select('R'),
-        'B' = image$select('B')
-        )
-    )$rename('vari')
+      'G' = image$select('G'),
+      'R' = image$select('R'),
+      'B' = image$select('B')
+    )
+  )$rename('vari')
   return(vari)
 }
 
@@ -226,13 +180,10 @@ rgb_vari <- function(image_given) {
 # checking was added
 #band_names <- normalized$bandNames()
 #print(band_names$get(4)$getInfo()) 
-```
 
-SAVI (Soil Adjusted Vegetation Index):
-SAVI = (1 + L) * (Bnir - Bred) / (Bnir + Bred + L)
---- L = correction factor (0 = high veg, 1 = very little veg)
 
-```{r}
+
+
 rgb_savi <- function(image_given) {
   image_bands <- image_given$select(c("R", "N"))
   image <- image_bands
@@ -240,10 +191,10 @@ rgb_savi <- function(image_given) {
   savi <- image$expression(
     expression = '(1 + 0.6) * (N - R) / (N + R + 0.6)',
     opt_map =  list(
-        'R' = image$select('R'),
-        'N' = image$select('N')
-        )
-    )$rename('savi')
+      'R' = image$select('R'),
+      'N' = image$select('N')
+    )
+  )$rename('savi')
   return(savi)
 }
 
@@ -255,12 +206,9 @@ normalized <- normalized$addBands(savi)
 # checking was added
 band_names <- normalized$bandNames()
 #print(band_names$get(4)$getInfo()) 
-```
 
-ENDVI (Enhanced Normalized Difference Vegetation Index):
-ENDVI = ((NIR + Green) - (2 * Blue)) / ((NIR + Green) + (2 * Blue))
 
-```{r}
+
 rgb_endvi <- function(image_given) {
   image_bands <- image_given$select(c("N", "G", "B"))
   image <- image_bands
@@ -268,11 +216,11 @@ rgb_endvi <- function(image_given) {
   endvi <- image$expression(
     expression = '((N + G) - (2 * B)) / ((N + G) + (2 + B))',
     opt_map =  list(
-        'N' = image$select('N'),  
-        'G' = image$select('G'),
-        'B' = image$select('B')
-        )
-    )$rename('endvi')
+      'N' = image$select('N'),  
+      'G' = image$select('G'),
+      'B' = image$select('B')
+    )
+  )$rename('endvi')
   return(endvi)
 }
 
@@ -284,18 +232,10 @@ normalized <- normalized$addBands(endvi)
 # checking was added
 band_names <- normalized$bandNames()
 #print(band_names$get(5)$getInfo()) 
-```
 
-Running a correlation test on the bands and indices. May be worth running a PCA analysis.
 
-```{r}
-# not needed for naip imagery without NIR band
 
-```
 
-Re-normalizing
-
-```{r}
 # Get mean and SD in every band by combining reducers.
 stats <- normalized$reduceRegion(
   reducer = ee$Reducer$mean()$combine(
@@ -315,11 +255,10 @@ sdsImage <- stats$toImage()$select('.*_stdDev')
 coeffVarImage <- meansImage$divide(sdsImage)
 
 normalized = normalized$subtract(coeffVarImage)
-```
 
-Sharpening and smoothing
 
-```{r}
+
+
 ### DoG sharpening
 fat <- ee$Kernel$gaussian(
   radius = 3,
@@ -348,17 +287,15 @@ gauss <- sharpened$convolve(gaussianKernel)
 ###
 
 visParamGauss <- list(bands <- c('R', 'G', 'B'),
-  min= 0,
-  max= 255
-  )
+                      min= 0,
+                      max= 255
+)
 
 ### checking that image was smoothed
 #Map$addLayer(gauss, visParams = visParamGauss)
-```
 
-Training the classification algorithm and showing the display parameters
 
-```{r}
+
 
 ### creating training samples for the unsupervised classification
 training <- gauss$sample(
@@ -375,50 +312,9 @@ clusterer <- ee$Clusterer$wekaKMeans(10) %>% # change clusters depending on imag
 result <- gauss$cluster(clusterer)
 ###
 
-### creating a landcover palette to view the result
-landcoverPalette <- c(
-  '#00a944', 
-  '#d6d6d6', 
-  '#c65b8d', 
-  '#000000', 
-  '#ff3434', 
-  '#5bb48f', 
-  '#47f37c', 
-  '#c04848', 
-  '#ded132', 
-  '#5bb48f', 
-  '#0f0077', 
-  '#778bff',
-  '#8f8f8f',
-  '#000000',
-  '#d9a300'
-  
-)
-
-visPalette <- list(
-  min= 0,
-  max= 9, # change depending on number of clusters
-  palette = landcoverPalette
-  )
-###
-
-### adding maps to compare
-#classified <- Map$addLayer(result, visParams = visPalette)
-#imageryMap <- Map$addLayer(clip, visParams= visParam)
-###
-```
-
-Displaying the maps
-
-```{r}
-### showing the maps
-#classified | imageryMap
-```
-
-It may be worth just going ahead and making some training samples for each of the cover types I want to train for. That way a confusion matrix can automatically be generated.
 
 
-```{r}
+
 drive_image <- ee_image_to_drive(
   image = normalized,
   description = "export",
@@ -429,12 +325,10 @@ drive_image <- ee_image_to_drive(
 )
 
 drive_image$start()
-```
 
 
-Downloading the classified map
 
-```{r}
+
 #shp_geo <- shp$geometry()
 
 drive_image <- ee_image_to_drive(
@@ -447,14 +341,19 @@ drive_image <- ee_image_to_drive(
 )
 
 drive_image$start()
-```
 
-If exporting to r
-```{r}
+
+
+
+
 naipNM_2009 <- ee_as_raster( #change name depending on raster to be downloaded
   image = result,
   region = shp_geo,
   dsn = "naipNM_2009.tif", # change for your own path.
   scale = 1,
 )
-```
+
+
+
+
+
