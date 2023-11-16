@@ -1,80 +1,85 @@
 ###ee_install()
 
-#library(rgee)
-#library(rgeeExtra)
-#library(reticulate)
+library(rgee)
+library(rgeeExtra)
+library(reticulate)
 
 # Initialize Earth Engine and GD
-#ee_Initialize(drive=TRUE)
+ee_Initialize()
+ee_Initialize(drive=TRUE)
 
 
 library(sf)
 library(sp)
 library(geojsonsf)
 library(rlist)
+library(geojsonio)
 # read in each geojson
 
 
-files_list <- list.files(path="C:/Users/Justin/Desktop/mesquite/mesq_jsons")
-
-# creating a path for each item in a file
-file_address_func <- function(file_given) {
-  addresses <- list()
-  
-  for (file in file_given) {
-    address <- "C:/Users/Justin/Desktop/mesquite/mesq_jsons/"
-    full_address <- paste0(address, file)
-    length_list <- length(addresses)
-    addresses <- append(addresses, full_address, after = length_list)
-  }
-  return(addresses)
-}
-
-listy <- file_address_func(files_list)
-#listy
-
-
-
-# generating names for each object to assign an sf value
-object_names <- function(given_list) {
-  ob_list <- list()
-  
-  for (listicle in given_list) {
-    temp_string <- "buff"
-    ob_name <- paste0(listicle, temp_string)
-    length_list <- length(ob_list)
-    ob_list <- append(ob_list, ob_name, after = length_list)
-    
-  }
-  return(ob_list)
-}
-
-ob_names <- object_names(files_list)
-#ob_names
-
-
-
-# creating a function to save all the geojsons to sf objects
-rng <- 1:length(listy)
-geo_json_func <- function(given_list, given_range) {
-  json_sf_list <- list()
-  
-  for (item in given_range) {
-    full_address <- given_list[[item]]
-    len_list <- length(json_sf_list)
-    json_sf_list <- append(json_sf_list, geojson_sf(full_address), after = length(json_sf_list))
-  }
-  return(json_sf_list)
-}  
-json_list <- geo_json_func(listy, rng)
-json_list[[1]]
+files_list <- list.files(path = "C:/Users/Justin Dawsey/Desktop/mesq_jsons") # user defined
+file_path_for_function <- "C:/Users/Justin Dawsey/Desktop/mesq_jsons/"
 
 
 # adding sf objects as ee assets
-ee_list_func <- function(given_json_list, given_range) {
-  eeItemList <- list()
+ee_list_func <- function(files_list_given, file_path_given) {
   
-  for (item in given_range) {
+  eeItemList <- list()
+  rng <- 1:length(files_list_given)
+  file_pathy <- file_path_given
+  
+  # creating a path for each item in a file
+  file_address_func <- function(files_given) {
+    addresses <- list()
+    
+    for (file in files_given) {
+      address <- file_pathy
+      full_address <- paste0(address, file)
+      length_list <- length(addresses)
+      addresses <- append(addresses, full_address, after = length_list)
+    }
+    return(addresses)
+  }
+  #running function and saving to list for use with below functions
+  listy <- file_address_func(files_list_given)
+  #return(listy)
+  
+  
+  
+  object_names <- function(given_list) { #given_list = "files_list_given" in original function attribute
+    ob_list <- list()
+    
+    for (listicle in given_list) {
+      temp_string <- "buff"
+      ob_name <- paste0(listicle, temp_string)
+      length_list <- length(ob_list)
+      ob_list <- append(ob_list, ob_name, after = length_list)
+      
+    }
+    return(ob_list)
+  }
+  ob_names <- object_names(files_list_given)
+  
+  
+  
+  
+  # creating a function to save all the geojsons to sf objects
+  geo_json_func <- function(given_list) { #given_list = "listy on line above object names function creation
+    json_sf_list <- list()
+    
+    for (item in rng) {
+      full_address <- given_list[[item]] # testing changing brackets
+      len_list <- length(json_sf_list)
+      json_sf_list <- append(json_sf_list, geojson_sf(full_address), after = length(json_sf_list))
+    }
+    return(json_sf_list)
+  }  
+  
+  json_list <- geo_json_func(listy)
+  #return(json_list)
+  
+  # finally saving all as assets
+  for (item in rng) {
     eeItemList <- append(eeItemList,
                          sf_as_ee(
                            x = json_list[[item]],
@@ -87,7 +92,7 @@ ee_list_func <- function(given_json_list, given_range) {
   return(eeItemList)
 }
 
-eeItemList <- ee_list_func(json_list, rng)
+eeItemList <- ee_list_func(files_list, file_path_for_function)
 #eeItemList
 
 
@@ -115,8 +120,8 @@ visParam <- list(bands <- c('R', 'G', 'B'),
 )
 
 # centering and adding to map to check that it's visualizing properly
-#Map$centerObject(shp)
-#Map$addLayer(clip, visParams= visParam)
+Map$centerObject(shp)
+Map$addLayer(clip, visParams= visParam)
 
 
 
