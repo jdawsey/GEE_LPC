@@ -1,6 +1,6 @@
-################################
+######################################################
 			Buffer creation
-################################
+######################################################
 In QGIS
 
 Import leks
@@ -28,9 +28,11 @@ finally - write in console ("ctrl + alt + p" to access):
 >>>for vLayer in iface.mapCanvas().layers():
     QgsVectorFileWriter.writeAsVectorFormat( vLayer, fileName = "C:/Users/Justin/Desktop/mesquite/mesq_jsons_work/" + vLayer.name() + ".geojson", fileEncoding = "utf-8", driverName = "GeoJSON", skipAttributeCreation = True)
 
-################################
+###################################################################
 			Sampling method
-################################
+###################################################################
+
+#### Stratified random sampling ####
 
 For each buffer:
  - classify and identify mesquite
@@ -57,9 +59,9 @@ For each centroid point:
 	- type surrounding habitat
 
 
-################################
+###############################################################
 			Analysis method
-################################
+###############################################################
 Create correlation matrix and check if normal
 
 Multivariate regression:

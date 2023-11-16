@@ -1,0 +1,15 @@
+https://www.css.cornell.edu/faculty/dgr2/_static/files/R_html/ex_rgee.html
+
+https://github.com/r-spatial/rgee
+
+https://r-earthengine.com/rgeebook/
+
+
+Create a raster with slope over 15% and clip the lek buffer so that it excludes those area. Then import that new buffer into GEE.
+
+It may also be worth creating a new buffer at 60km? See results of "https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.1441".
+Net displacement (km)	Dispersal: 	16.18 ± 2.77
+			Foray loops:	8.84 ± 0.75
+			Round-trip:	13.03 ± 1.47
+
+https://esajournals.onlinelibrary.wiley.com/cms/asset/f823ee57-bca5-4e79-8581-5a5c17703206/ecs21441-fig-0004-m.jpg
