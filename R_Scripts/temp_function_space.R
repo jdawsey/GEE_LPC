@@ -17,92 +17,10 @@ library(geojsonio)
 # read in each geojson
 
 
-files_list <- list.files(path = "C:/Users/Justin Dawsey/Desktop/mesq_jsons") # user defined
-file_path_for_function <- "C:/Users/Justin Dawsey/Desktop/mesq_jsons/"
 
 
-# adding sf objects as ee assets
-ee_list_func <- function(files_list_given, file_path_given) {
-  
-  eeItemList <- list()
-  rng <- 1:length(files_list_given)
-  file_pathy <- file_path_given
-  
-  # creating a path for each item in a file
-  file_address_func <- function(files_given) {
-    addresses <- list()
-    
-    for (file in files_given) {
-      address <- file_pathy
-      full_address <- paste0(address, file)
-      length_list <- length(addresses)
-      addresses <- append(addresses, full_address, after = length_list)
-    }
-    return(addresses)
-  }
-  #running function and saving to list for use with below functions
-  listy <- file_address_func(files_list_given)
-  #return(listy)
-  
-  
-  
-  object_names <- function(given_list) { #given_list = "files_list_given" in original function attribute
-    ob_list <- list()
-    
-    for (listicle in given_list) {
-      temp_string <- "buff"
-      ob_name <- paste0(listicle, temp_string)
-      length_list <- length(ob_list)
-      ob_list <- append(ob_list, ob_name, after = length_list)
-      
-    }
-    return(ob_list)
-  }
-  ob_names <- object_names(files_list_given)
-  
-  
-  
-  
-  # creating a function to save all the geojsons to sf objects
-  geo_json_func <- function(given_list) { #given_list = "listy on line above object names function creation
-    json_sf_list <- list()
-    
-    for (item in rng) {
-      full_address <- given_list[[item]] # testing changing brackets
-      len_list <- length(json_sf_list)
-      json_sf_list <- append(json_sf_list, geojson_sf(full_address), after = length(json_sf_list))
-    }
-    return(json_sf_list)
-  }  
-  
-  json_list <- geo_json_func(listy)
-  #return(json_list)
-  
-  # finally saving all as assets
-  for (item in rng) {
-    eeItemList <- append(eeItemList,
-                         sf_as_ee(
-                           x = json_list[[item]],
-                           assetID = ob_names[[item]]
-                         ),
-                         after = length(eeItemList)
-    )
-    
-  }
-  return(eeItemList)
-}
 
-eeItemList <- ee_list_func(files_list, file_path_for_function)
-#eeItemList
-
-
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-
-
-quick_gaussed <- function (given_ee_item, start_date_given, end_date_given) {
+quick_classify <- function (given_ee_item, start_date_given, end_date_given) {
   shp <- given_ee_item # change per buffer
   
   ### choose your imagery and the dates for it
@@ -213,6 +131,8 @@ quick_gaussed <- function (given_ee_item, start_date_given, end_date_given) {
   normalized = normalized$subtract(coeffVarImage)
   
   
+  
+  
   ### DoG sharpening
   fat <- ee$Kernel$gaussian(
     radius = 3,
@@ -240,19 +160,9 @@ quick_gaussed <- function (given_ee_item, start_date_given, end_date_given) {
   gauss <- sharpened$convolve(gaussianKernel)
   ###
   
-  return(gauss)
-}  
-
-
-##########################################################################
-##########################################################################
-##########################################################################
-##########################################################################
-
   
-quick_classify <- function (gaussed_ee_item, region, num_clusters_wanted) {
-  gauss <- gaussed_ee_item
-  shp <- ee_item
+  
+  
   
   ### creating training samples for the unsupervised classification
   training <- gauss$sample(
@@ -263,7 +173,7 @@ quick_classify <- function (gaussed_ee_item, region, num_clusters_wanted) {
   ###
   
   ### the actual classification function
-  clusterer <- ee$Clusterer$wekaKMeans(num_clusters_wanted) %>% # change clusters depending on imagery
+  clusterer <- ee$Clusterer$wekaKMeans(10) %>% # change clusters depending on imagery
     ee$Clusterer$train(training)
   
   result <- gauss$cluster(clusterer)
@@ -273,29 +183,22 @@ quick_classify <- function (gaussed_ee_item, region, num_clusters_wanted) {
   
   
   return(result)
+  
+  
+  
 }
 
-##############################################################
-##############################################################
-##############################################################
-##############################################################
 
-
-start_date <- '2016-01-01'
-end_date <- '2016-12-31'
-ee_item <- eeItemList[[5]]
-
-buff_gauss <- quick_gaussed(ee_item, start_date, end_date)
-num_clusters <- 10
-buff_classified <- quick_classify(buff_gauss, ee_item, num_clusters)
+### change the feature collection to your boundary asset location
+shp <- eeItemList[[10]] # change per buffer
 
 
 
 drive_image <- ee_image_to_drive(
-  image = buff_normalized,
+  image = normalized,
   description = "export",
   folder = "!imagery",
-  region = eeItemList[[5]],
+  region = shp,
   scale = 1,
   max = 130000000
 )
@@ -308,9 +211,9 @@ drive_image$start()
 #shp_geo <- shp$geometry()
 
 drive_image <- ee_image_to_drive(
-  image = buff_classified,
+  image = result,
   description = "export",
-  folder = "",
+  folder = "!imagery",
   region = shp,
   scale = 1,
   max = 130000000
