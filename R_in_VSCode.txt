@@ -1,0 +1,8 @@
+Open the conda environment in the terminal
+
+start VSCode
+
+Activate the conda environment in the terminal.
+run the terminal connection line
+
+open a new virtual r terminal

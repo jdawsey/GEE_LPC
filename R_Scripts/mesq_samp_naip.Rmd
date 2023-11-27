@@ -18,11 +18,12 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r}
 ###ee_install()
 
-#library(rgee)
-#library(rgeeExtra)
-#library(reticulate)
+library(rgee)
+library(rgeeExtra)
+library(reticulate)
 
 # Initialize Earth Engine and GD
+ee_Initialize()
 #ee_Initialize(drive=TRUE)
 
 ```

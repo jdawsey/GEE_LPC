@@ -19,8 +19,8 @@ library(geojsonio)
 # read in each geojson
 
 
-files_list <- list.files(path = "C:/Users/Justin Dawsey/Desktop/mesq_jsons") # user defined
-file_path_for_function <- "C:/Users/Justin Dawsey/Desktop/mesq_jsons/"
+files_list <- list.files(path = "/home/justin/GEE_LPC/mesq_jsons") #user defined
+file_path_for_function <- "/home/justin/GEE_LPC/mesq_jsons/"
 
 
 # adding sf objects as ee assets
@@ -246,12 +246,8 @@ quick_gaussed <- function (given_ee_item, start_date_given, end_date_given) {
 }  
 
 
-##########################################################################
-##########################################################################
-##########################################################################
-##########################################################################
 
-  
+
 quick_classify <- function (gaussed_ee_item, region, num_clusters_wanted) {
   gauss <- gaussed_ee_item
   shp <- ee_item
@@ -292,46 +288,110 @@ num_clusters <- 10
 buff_classified <- quick_classify(buff_gauss, ee_item, num_clusters)
 
 
-
-drive_image <- ee_image_to_drive(
-  image = buff_normalized,
-  description = "export",
-  folder = "!imagery",
-  region = eeItemList[[5]],
-  scale = 1,
-  max = 130000000
+landcoverPalette <- c(
+  '#00a944', 
+  '#d6d6d6', 
+  '#c65b8d', 
+  '#000000', 
+  '#ff3434', 
+  '#5bb48f', 
+  '#47f37c', 
+  '#c04848', 
+  '#ded132', 
+  '#5bb48f', 
+  '#0f0077', 
+  '#778bff',
+  '#8f8f8f',
+  '#000000',
+  '#d9a300'
+  
 )
 
-drive_image$start()
+visPalette <- list(
+  min= 0,
+  max= 9, # change depending on number of clusters
+  palette = landcoverPalette
+  )
+###
+
+### adding maps to compare
+classified <- Map$addLayer(buff_classified, visParams = visPalette)
 
 
+###############################################
+### Creating mesquite clusters for analyses ###
+###############################################
 
+# need to figure out how to specify the mesquite value in the classified raster
 
-#shp_geo <- shp$geometry()
+target_class <- ### mesquite class
+# masking out other classes
+land_cover_mask <- buff_classified$eq(target_class)
 
-drive_image <- ee_image_to_drive(
-  image = buff_classified,
-  description = "export",
-  folder = "",
-  region = shp,
-  scale = 1,
-  max = 130000000
+# change connectedness depending on perfermance
+connectedness <- ee$Kernel$square(1)
+
+clusters <- land_cover_mask$connectedPixelCount(
+  neighborhood = connectedness,
+  maxSize = 128
+)
+print("clusters image:", cluster$getInfo())
+
+custom_reducer <- ee$Reducer$mean()$combine(
+  reducer2 = ee$Reducer$count(),
+  sharedInputs = 2
 )
 
-drive_image$start()
-
-
-
-
-
-naipNM_2009 <- ee_as_raster( #change name depending on raster to be downloaded
-  image = result,
-  region = shp_geo,
-  dsn = "naipNM_2009.tif", # change for your own path.
-  scale = 1,
+# pulling the centroids and adding the pixel counts as an attribute
+centroids_w_count <- clusters$reduceConnectedComponents(
+  reducer = custom_reducer,
+  geometry = clusters$geometry(),
+  scale = 1
 )
 
+# selecting the 'creating' bands of info
+centroids <- centroids_w_count$select(('p1', 'p2', 'p3'), 
+  ('longitude', 'latitude', 'count')
+)
+
+#turning the centroid 'image' into vector data
+centroids_vector <- centroids$reduceToVectors(
+  geometry = clusters$geometry(),
+  scale = 1,
+  geometryType = 'centroid',
+  eightConnected = FALSE,
+  labelProperty = 'count'
+)
+
+print("centroids with count:", centroids_vector$getInfo())
 
 
+##############################################################
+# May be worth just using ArcGIS to generate the proportions #
+##############################################################
 
+# finding the proportion of land cover types for each image
+histogram <- buff_classified$reduceRegion(
+  reducer = ee$Reducer$frequencyHistogram(),
+  geometry = shp,  #or region?
+  scale = 1
+)
 
+lc_frequency <- ee$Dictionary(histogram$get(buff_classified))
+total_area <- ee$Number(shp$area())
+
+# may need to modify creation of a function
+lc_proportions <- lc_frequency$map(function(key, value) {
+  return ee$Number(value)$divide(total_area)
+}
+
+feat_collection <- ee$FeatureCollection(lc_proportions$keys()$map(function(key) {
+  feature = ee$Feature(null, (
+    'LandCoverType' = key,
+    'Proportion' = lc_proportions$get(key)
+  )
+  )
+  return feature
+})
+
+# returning table to drive
