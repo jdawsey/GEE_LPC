@@ -19,8 +19,8 @@ library(geojsonio)
 # read in each geojson
 
 
-files_list <- list.files(path = "/home/justin/GEE_LPC/mesq_jsons") #user defined
-file_path_for_function <- "/home/justin/GEE_LPC/mesq_jsons/"
+files_list <- list.files(path = "C:/Users/Justin/Desktop/mesquite/mesq_jsons") #user defined
+file_path_for_function <- "C:/Users/Justin/Desktop/mesquite/mesq_jsons/"
 
 
 # adding sf objects as ee assets
@@ -316,7 +316,7 @@ visPalette <- list(
 
 ### adding maps to compare
 classified <- Map$addLayer(buff_classified, visParams = visPalette)
-
+classified
 
 ###############################################
 ### Creating mesquite clusters for analyses ###

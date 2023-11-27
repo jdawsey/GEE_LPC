@@ -1,0 +1,1 @@
+Fix the R code to reflect what was done in GEE proper.
