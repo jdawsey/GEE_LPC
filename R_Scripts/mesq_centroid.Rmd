@@ -33,17 +33,18 @@ library(sf)
 library(sp)
 library(geojsonsf)
 library(rlist)
+library(geojsonio)
 # read in each geojson
 
 
-files_list <- list.files(path="C:/Users/Justin/Desktop/mesquite/mesq_jsons")
+files_list <- list.files(path="F:/!!Research/github_gee_backup/mesq_jsons/")
 
 # creating a path for each item in a file
 file_address_func <- function(file_given) {
   addresses <- list()
   
   for (file in file_given) {
-    address <- "C:/Users/Justin/Desktop/mesquite/mesq_jsons/"
+    address <- "F:/!!Research/github_gee_backup/mesq_jsons/"
     full_address <- paste0(address, file)
     length_list <- length(addresses)
     addresses <- append(addresses, full_address, after = length_list)
@@ -370,7 +371,7 @@ training <- gauss$sample(
 ###
 
 ### the actual classification function
-clusterer <- ee$Clusterer$wekaKMeans(10) %>% # change clusters depending on imagery
+clusterer <- ee$Clusterer$wekaKMeans(11) %>% # change clusters depending on imagery
   ee$Clusterer$train(training)
 
 result <- gauss$cluster(clusterer)
@@ -387,8 +388,8 @@ landcoverPalette <- c(
   '#47f37c', 
   '#c04848', 
   '#ded132', 
-  '#5bb48f' 
-  #'#0f0077', 
+  '#5bb48f', 
+  '#0f0077' 
   #'#778bff',
   #'#8f8f8f',
   #'#000000',
@@ -398,7 +399,7 @@ landcoverPalette <- c(
 
 visPalette <- list(
   min= 0,
-  max= 9, # change depending on number of clusters
+  max= 10, # change depending on number of clusters
   palette = landcoverPalette
   )
 ###
@@ -418,57 +419,134 @@ classified | imageryMap
 
 It may be worth just going ahead and making some training samples for each of the cover types I want to train for. That way a confusion matrix can automatically be generated.
 
+```{r}
+assetID <- paste0(ee_get_assethome(), '/mesq_test')
+ee_image_to_asset(
+  result,
+  description = 'mesquite_test',
+  assetID = assetID,
+  pyramidingPolicy = 'mean',
+  scale = 1,
+  maxPixels = 130000000
+)
+```
 
 ```{r}
 # need to figure out how to specify the mesquite value in the classified raster
-bns <- result$bandNames()
-bns
+class_values <- list(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+new_values <- list(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)
+new_val_band <- 'cluster'
 
-target_class <- '7' ### mesquite class
-# masking out other classes
-land_cover_mask <- result$eq(target_class)
-
-# change connectedness depending on performance
-connectedness <- ee$Kernel$square(1)
-
-clusters <- land_cover_mask$connectedPixelCount(
-  eightConnected = TRUE,
-  maxSize = 128
+class_bands <- result$remap(
+  from = class_values,
+  to = new_values,
+  bandName = new_val_band
 )
-print("clusters image:", clusters$getInfo())
+
+
+mesq_palette <- c(
+  '#d6d6d6',
+  '#00a944' 
+)
+
+mesqPalette <- list(
+  min= 0,
+  max= 1, # change depending on number of clusters
+  palette = mesq_palette
+  )
+
+mesqmap <- Map$addLayer(class_bands, visParams = mesqPalette)
+
+mesqmap | imageryMap
+
+# Masking out other classes
+target_class <- result$select('cluster')$eq(7) ### mesquite class
+Map$addLayer(target_class, visParams = mesqPalette)
 
 ```
 
 
 ```{r}
-custom_reducer <- ee$Reducer$mean()$combine(
-  reducer2 = ee$Reducer$count(),
-  sharedInputs = 2
+# change connectedness depending on performance
+
+mesquite <- gauss$updateMask(target_class)
+
+connectedness <- ee$Kernel$square(1)
+
+clusters <- mesquite$int16()$connectedPixelCount(
+  eightConnected = TRUE,
+  maxSize = 128
 )
+
+
+Map$addLayer(clusters)
 
 # pulling the centroids and adding the pixel counts as an attribute
-centroids_w_count <- clusters$reduceConnectedComponents(
-  reducer = custom_reducer,
-  geometry = clusters$geometry(),
-  scale = 1
+centroids <- clusters$reduceConnectedComponents(
+  reducer = 'count'
+  #geometry = clusters$geometry(),
+  #scale = 1
 )
 
-# selecting the 'creating' bands of info
-centroids <- centroids_w_count$select(('p1', 'p2', 'p3'), 
-  ('longitude', 'latitude', 'count')
+Map$addLayer(centroids)
+
+# selecting the 'created' bands of info
+#centroids <- centroids_w_count$select(c('longitude', 'latitude', 'count')
+#)
+
+centroids = ee$Image$constant(1)$clip(shp)
+
+Map$addLayer(centroids)
+
+```
+
+
+```{r}
+
+mesq <- ee$Image(target_class)
+vis_min = 0
+vis_max = 1
+
+vis_mesq <- list(
+  min = vis_min,
+  max = vis_max
 )
+Map$addLayer(mesq, visParams = vis_mesq)
+
+centroids_vector <- mesq$sample(
+  region = shp,
+  scale = 5,
+  #geometries = TRUE
+)
+
+styled = centroids_vector$style(
+    color='#0000FF',
+    fillColor='#00a944',
+    neighborhood=1,  # increase to correctly draw large points
+)
+Map$centerObject(shp)
+Map$addLayer(centroids_vector)
+
+```
+
+
+
+```{r}
 
 #turning the centroid 'image' into vector data
-centroids_vector <- centroids$reduceToVectors(
-  geometry = clusters$geometry(),
+centroids_vector <- centroids_w_count$reduceToVectors(
+  reducer = ee$Reducer$countEvery(),
+  geometry = shp,
   scale = 1,
   geometryType = 'centroid',
-  eightConnected = FALSE,
-  labelProperty = 'count'
+  eightConnected = TRUE,
+  #labelProperty = 'count',
+  maxPixels = 500000000,
+  geometryInNativeProjection = TRUE
 )
 
 print("centroids with count:", centroids_vector$getInfo())
-
+centroids_vector$getInfo()
 ```
 
 
