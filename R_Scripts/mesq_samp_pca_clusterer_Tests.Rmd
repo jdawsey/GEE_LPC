@@ -33,6 +33,7 @@ library(sf)
 library(sp)
 library(geojsonsf)
 library(rlist)
+library(dplyr)
 # read in each geojson
 
 
@@ -391,6 +392,104 @@ bands_huh
 
 ```
 
+```{r}
+image = normalized$unmask()
+scale = 1
+region = shp
+bandNames = c('R', 'G', 'B', 'N', 'savi', 'endvi')
+#Mean center the data to enable a faster covariance reducer
+#and an SD stretch of the principal components.
+meanDict = image$reduceRegion(
+  reducer = ee$Reducer$mean(),
+  #geometry = region,
+  scale = scale,
+  maxPixels = 200000000,
+  tileScale = 8
+)
+  
+meanssss = ee$Image$constant(meanDict$values(c('R', 'G', 'B', 'N', 'savi', 'endvi')))
+centered = image$subtract(meanssss)
+  
+#This helper function returns a list of new band names.
+#adds the prefix 'pc' to the numbers being created by the pca.
+getNewBandNames <- function(prefix) {
+  sequ <- ee$List$sequence(1, bandNames$length())
+  sequ_map <- sequ$map(ee_utils_pyfunc(function(b) {
+    return(ee$String(prefix)$cat(ee$Number(b)$int()))
+  }))
+  return(ee_print(sequ_map))
+}
+
+
+  
+#This function accepts mean centered imagery, a scale and
+#a region in which to perform the analysis.  It returns the
+#Principal Components (PC) in the region as a new image.
+
+#Collapse the bands of the image into a 1D array per pixel.
+arrays <- centered$toArray()
+    
+#Compute the covariance of the bands within the region.
+covar = arrays$reduceRegion(
+  reducer = ee$Reducer$centeredCovariance(),
+)
+    
+#Get the 'array' covariance result and cast to an array.
+#This represents the band-to-band covariance within the region.
+covarArray <- ee$Array(covar$get('array'))
+    
+#Perform an eigen analysis and slice apart the values and vectors.
+eigens <- covarArray$eigen()
+    
+#This is a P-length vector of Eigenvalues.
+eigenValues <- eigens$slice(1, 0, 1)
+    
+#Compute Percentage Variance of each component
+#This will allow us to decide how many components capture
+#most of the variance in the input
+eigenValuesList <- eigenValues$toList()$flatten()
+total <- eigenValuesList$reduce(ee$Reducer$sum())
+
+    
+######
+###### Problem area
+percentageVariance <- eigenValuesList$iterate(
+    function(eigenValuesList) {
+    item <- ee$Number(item)
+    component <- eigenValuesList$indexOf(item)$add(1)$format('%02d')
+    variance <- item$divide(total)$multiply(100)$format('%.2f')
+      
+    return(ee$List(component, variance))
+  })
+######
+######
+
+#Create a dictionary that will be used to set properties on final image
+varianceDict <- ee$Dictionary(percentageVariance$flatten())
+#This is a PxP matrix with eigenvectors in rows.
+eigenVectors <- eigens$slice(1, 1)
+#Convert the array image to 2D arrays for matrix computations.
+arrayImage <- arrays$toArray(1)
+    
+#Left multiply the image array by the matrix of eigenvectors.
+principalComponents <- ee$Image(eigenVectors)$matrixMultiply(arrayImage)
+    
+#Turn the square roots of the Eigenvalues into a P-band image.
+#Call abs() to turn negative eigenvalues to positive before
+#taking the square root
+sdImage <- ee$Image(eigenValues$abs()$sqrt())$arrayProject((0))$arrayFlatten((getNewBandNames('sd')))
+    
+#Turn the PCs into a P-band image, normalized by SD.
+#Throw out an an unneeded dimension, [[]] -> [].
+#Make the one band array image a multi-band image, [] -> image.
+#Normalize the PCs by their SDs.
+pcImage <- principalComponents$arrayProject((0))$arrayFlatten((getNewBandNames('pc')))$divide(sdImage)$set(varianceDict)
+
+
+bands_hub <- pcImage$mask(maskedImage$mask())
+  
+
+```
 Re-normalizing
 
 ```{r}
