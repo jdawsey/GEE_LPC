@@ -33,7 +33,6 @@ library(sf)
 library(sp)
 library(geojsonsf)
 library(rlist)
-library(geojsonio)
 # read in each geojson
 
 
@@ -129,7 +128,7 @@ Years - NM - 2009 (1m RGB), 2011 (1m), 2014 (1m), 2016 (1m), 2018, 2020, 2022
 
 ```{r}
 ### change the feature collection to your boundary asset location
-shp <- eeItemList[[10]] # change per buffer - already ran 10 ---###########havent run 11 yet
+shp <- eeItemList[[10]] # change per buffer ###########havent run 11 yet
 
 ### choose your imagery and the dates for it
 year <- ee$ImageCollection('USDA/NAIP/DOQQ') %>%
@@ -250,6 +249,7 @@ rgb_savi <- function(image_given) {
 }
 
 savi <- rgb_savi(normalized)
+#Map$addLayer(savi)
 
 # adding savi as a band to use
 normalized <- normalized$addBands(savi)
@@ -291,8 +291,128 @@ band_names <- normalized$bandNames()
 Running a correlation test on the bands and indices. May be worth running a PCA analysis.
 
 ```{r}
-# not needed for naip imagery without NIR band
+########################
+########################
+########################
+ee_print(normalized)
 
+
+pca_test <- function(image_given) {
+  image = image_given$unmask()
+  scale = 1
+  region = shp
+  bandNames = c('R', 'G', 'B', 'N', 'savi', 'endvi')
+  #Mean center the data to enable a faster covariance reducer
+  #and an SD stretch of the principal components.
+  meanDict = image$reduceRegion(list(
+    reducer = ee$Reducer$mean(),
+    #geometry = region,
+    scale = scale,
+    maxPixels = 200000000,
+    tileScale = 8
+  ))
+  
+  meanssss = ee$Image$constant(meanDict$values(c('R', 'G', 'B', 'N', 'savi', 'endvi')))
+  centered = image$subtract(meanssss)
+  
+  #This helper function returns a list of new band names.
+  #adds the prefix 'pc' to the numbers being created by the pca.
+  getNewBandNames <- function(prefix) {
+    sequ <- ee$List$sequence(1, bandNames$length())
+    sequ_map <- sequ$map(ee_utils_pyfunc(function(b) {
+      return(ee$String(prefix)$cat(ee$Number(b)$int()))
+    }))
+    return(ee_print(sequ_map))
+  }
+  
+  #This function accepts mean centered imagery, a scale and
+  #a region in which to perform the analysis.  It returns the
+  #Principal Components (PC) in the region as a new image.
+  getPrincipalComponents = function(centered, scale) {
+    #Collapse the bands of the image into a 1D array per pixel.
+    arrays <- centered$toArray()
+    
+    #Compute the covariance of the bands within the region.
+    covar = arrays$reduceRegion(
+      reducer = ee$Reducer$centeredCovariance(),
+    )
+    
+    #Get the 'array' covariance result and cast to an array.
+    #This represents the band-to-band covariance within the region.
+    covarArray <- ee$Array(covar$get('array'))
+    
+    #Perform an eigen analysis and slice apart the values and vectors.
+    eigens <- covarArray$eigen()
+    
+    #This is a P-length vector of Eigenvalues.
+    eigenValues <- eigens$slice(1, 0, 1)
+    
+    #Compute Percentage Variance of each component
+    #This will allow us to decide how many components capture
+    #most of the variance in the input
+    eigenValuesList <- eigenValues$toList()$flatten()
+    total <- eigenValuesList$reduce(ee$Reducer$sum())
+    
+    
+    percentageVariance <- eigenValuesList$map(ee_utils_pyfunc(function(item) {
+      component <- eigenValuesList$indexOf(item)$add(1)$format('%02d')
+      variance <- ee$Number(item)$divide(total)$multiply(100)$format('%.2f')
+      
+      return(ee$List(component, variance))
+    }))
+    
+    #Create a dictionary that will be used to set properties on final image
+    varianceDict <- ee$Dictionary(percentageVariance$flatten())
+    #This is a PxP matrix with eigenvectors in rows.
+    eigenVectors <- eigens$slice(1, 1)
+    #Convert the array image to 2D arrays for matrix computations.
+    arrayImage <- arrays$toArray(1)
+    
+    #Left multiply the image array by the matrix of eigenvectors.
+    principalComponents <- ee$Image(eigenVectors)$matrixMultiply(arrayImage)
+    
+    #Turn the square roots of the Eigenvalues into a P-band image.
+    #Call abs() to turn negative eigenvalues to positive before
+    #taking the square root
+    sdImage <- ee$Image(eigenValues$abs()$sqrt())$arrayProject((0))$arrayFlatten((getNewBandNames('sd')))
+    
+    #Turn the PCs into a P-band image, normalized by SD.
+    #Throw out an an unneeded dimension, [[]] -> [].
+    #Make the one band array image a multi-band image, [] -> image.
+    #Normalize the PCs by their SDs.
+    return(principalComponents$arrayProject((0))$arrayFlatten((getNewBandNames('pc')))$divide(sdImage)$set(varianceDict))
+  }
+  pcImage <- getPrincipalComponents(centered, scale)
+  return(pcImage$mask(maskedImage$mask()))
+}
+
+bands_huh <- pca_test(normalized)
+bands_huh
+
+```
+
+Re-normalizing
+
+```{r}
+# Get mean and SD in every band by combining reducers.
+stats <- normalized$reduceRegion(
+  reducer = ee$Reducer$mean()$combine(
+    reducer2 = ee$Reducer$stdDev(),
+    sharedInputs = TRUE
+  ),
+  geometry = shp,
+  scale = 1, # change depending on year
+  bestEffort = TRUE # Use maxPixels if you care about scale.
+)
+
+#print(stats$getInfo())
+
+# Extract means and SDs to images.
+#meansImage <- stats$toImage()$select('.*_mean')
+#sdsImage <- stats$toImage()$select('.*_stdDev')
+#coeffVarImage <- meansImage$divide(sdsImage)
+
+#normalized = normalized$subtract(coeffVarImage)
 ```
 
 Sharpening and smoothing
@@ -342,12 +462,12 @@ Training the classification algorithm and showing the display parameters
 training <- gauss$sample(
   region = shp,
   scale = 1, #change depending on year
-  numPixels = 5000
+  numPixels = 10000
 )
 ###
 
 ### the actual classification function
-clusterer <- ee$Clusterer$wekaKMeans(11) %>% # change clusters depending on imagery
+clusterer <- ee$Clusterer$wekaKMeans(10) %>% # change clusters depending on imagery
   ee$Clusterer$train(training)
 
 result <- gauss$cluster(clusterer)
@@ -365,17 +485,17 @@ landcoverPalette <- c(
   '#c04848', 
   '#ded132', 
   '#5bb48f', 
-  '#0f0077' 
-  #'#778bff',
-  #'#8f8f8f',
-  #'#000000',
-  #'#d9a300'
+  '#0f0077', 
+  '#778bff',
+  '#8f8f8f',
+  '#000000',
+  '#d9a300'
   
 )
 
 visPalette <- list(
   min= 0,
-  max= 10, # change depending on number of clusters
+  max= 9, # change depending on number of clusters
   palette = landcoverPalette
   )
 ###
@@ -395,140 +515,10 @@ classified | imageryMap
 
 It may be worth just going ahead and making some training samples for each of the cover types I want to train for. That way a confusion matrix can automatically be generated.
 
-```{r}
-# need to figure out how to specify the mesquite value in the classified raster
-class_values <- list(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-new_values <- list(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)
-new_val_band <- 'cluster'
-
-class_bands <- result$remap(
-  from = class_values,
-  to = new_values,
-  bandName = new_val_band
-)
-
-
-mesq_palette <- c(
-  '#d6d6d6',
-  '#00a944' 
-)
-
-mesqPalette <- list(
-  min= 0,
-  max= 1, # change depending on number of clusters
-  palette = mesq_palette
-  )
-
-mesqmap <- Map$addLayer(class_bands, visParams = mesqPalette)
-
-mesqmap | imageryMap
-
-# Masking out other classes
-target <- result$select('cluster') ### mesquite class
-
-zones <- target$gt(0)$add(target$gt(1))
-zones <- zones$updateMask(zones$neq(0))
-
-```
-
-
-```{r}
-#turning the centroid 'image' into vector data
-vectors <- zones$addBands(target)$reduceToVectors(
-  geometry = shp,
-  scale = 2,
-  geometryType = 'polygon',
-  eightConnected = FALSE,
-  labelProperty = 'tree',
-  maxPixels = 200000000,
-  reducer = ee$Reducer$count(),
-)
-
-#print("centroids with count:", vectors$getInfo())
-#vectors$getInfo()
-```
-
-```{r}
-Map$addLayer(vectors)
-```
-
-
-
-```{r}
-# change connectedness depending on performance
-
-mesquite <- gauss$updateMask(target_class)
-
-connectedness <- ee$Kernel$square(1)
-
-clusters <- mesquite$int16()$connectedPixelCount(
-  eightConnected = TRUE,
-  maxSize = 128
-)
-
-
-Map$addLayer(clusters)
-
-# pulling the centroids and adding the pixel counts as an attribute
-centroids <- clusters$reduceConnectedComponents(
-  reducer = 'count'
-  #geometry = clusters$geometry(),
-  #scale = 1
-)
-
-Map$addLayer(centroids)
-
-# selecting the 'created' bands of info
-#centroids <- centroids_w_count$select(c('longitude', 'latitude', 'count')
-#)
-
-centroids = ee$Image$constant(1)$clip(shp)
-
-Map$addLayer(centroids)
-
-```
-
-
-```{r}
-
-mesq <- ee$Image(target_class)
-vis_min = 0
-vis_max = 1
-
-vis_mesq <- list(
-  min = vis_min,
-  max = vis_max
-)
-Map$addLayer(mesq, visParams = vis_mesq)
-
-centroids_vector <- mesq$sample(
-  region = shp,
-  scale = 5,
-  #geometries = TRUE
-)
-
-styled = centroids_vector$style(
-    color='#0000FF',
-    fillColor='#00a944',
-    neighborhood=1,  # increase to correctly draw large points
-)
-Map$centerObject(shp)
-Map$addLayer(centroids_vector)
-
-```
-
-
-
-```{r}
-
-
-```
-
-
 
 ```{r}
 drive_image <- ee_image_to_drive(
-  image = normalized,
+  image = gauss,
   description = "export",
   folder = "!imagery",
   region = shp,
@@ -555,14 +545,4 @@ drive_image <- ee_image_to_drive(
 )
 
 drive_image$start()
-```
-
-If exporting to r
-```{r}
-naipNM_2009 <- ee_as_raster( #change name depending on raster to be downloaded
-  image = result,
-  region = shp_geo,
-  dsn = "naipNM_2009.tif", # change for your own path.
-  scale = 1,
-)
 ```
