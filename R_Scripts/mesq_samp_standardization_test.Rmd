@@ -128,7 +128,8 @@ Years - NM - 2009 (1m RGB), 2011 (1m), 2014 (1m), 2016 (1m), 2018, 2020, 2022
 
 ```{r}
 ### change the feature collection to your boundary asset location
-shp <- eeItemList[[10]] # change per buffer ###########havent run 11 yet
+shp <- eeItemList[[2]] # change per buffer ########### currently standardizing. Haven't run 2
+#Have downloaded 1, 10, and 45 for testing
 
 ### choose your imagery and the dates for it
 year <- ee$ImageCollection('USDA/NAIP/DOQQ') %>%
@@ -303,7 +304,7 @@ training <- gauss$sample(
 ###
 
 ### the actual classification function
-clusterer <- ee$Clusterer$wekaLVQ(10) %>% # change clusters depending on imagery ### check accuracies
+clusterer <- ee$Clusterer$wekaXMeans() %>% # change clusters depending on imagery ### check accuracies
   ee$Clusterer$train(training)
 
 result <- gauss$cluster(clusterer)
