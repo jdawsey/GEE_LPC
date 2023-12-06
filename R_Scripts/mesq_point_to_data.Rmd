@@ -1,0 +1,171 @@
+---
+title: "Adding info to points"
+author: "Justin Dawsey"
+date: "2023-12-06"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+###ee_install()
+
+library(rgee)
+library(rgeeExtra)
+library(reticulate)
+
+# Initialize Earth Engine and GD
+#ee_Initialize()
+ee_Initialize(drive=TRUE)
+
+```
+
+```{r}
+library(sf)
+library(sp)
+library(geojsonsf)
+library(rlist)
+# read in each geojson
+
+
+files_list <- list.files(path="C:/Users/Justin/Desktop/mesquite/mesq_jsons") #change to whatever list
+
+# creating a path for each item in a file
+file_address_func <- function(file_given) {
+  addresses <- list()
+  
+  for (file in file_given) {
+    address <- "C:/Users/Justin/Desktop/mesquite/mesq_jsons/"
+    full_address <- paste0(address, file)
+    length_list <- length(addresses)
+    addresses <- append(addresses, full_address, after = length_list)
+  }
+  return(addresses)
+}
+
+listy <- file_address_func(files_list)
+#listy
+```
+
+
+```{r}
+# generating names for each object to assign an sf value
+object_names <- function(given_list) {
+  ob_list <- list()
+  
+  for (listicle in given_list) {
+    temp_string <- "buff"
+    ob_name <- paste0(listicle, temp_string)
+    length_list <- length(ob_list)
+    ob_list <- append(ob_list, ob_name, after = length_list)
+    
+  }
+  return(ob_list)
+}
+
+ob_names <- object_names(files_list)
+#ob_names
+```
+
+
+
+```{r}
+# creating a function to save all the geojsons to sf objects
+rng <- 1:length(listy)
+geo_json_func <- function(given_list, given_range) {
+  json_sf_list <- list()
+  
+  for (item in given_range) {
+    full_address <- given_list[[item]]
+    len_list <- length(json_sf_list)
+    json_sf_list <- append(json_sf_list, geojson_sf(full_address), after = length(json_sf_list))
+  }
+  return(json_sf_list)
+}  
+json_list <- geo_json_func(listy, rng)
+json_list[[1]]
+
+
+# adding sf objects as ee assets
+ee_list_func <- function(given_json_list, given_range) {
+  eeItemList <- list()
+  
+  for (item in given_range) {
+    eeItemList <- append(eeItemList,
+                         sf_as_ee(
+                           x = json_list[[item]],
+                           assetID = ob_names[[item]]
+                         ),
+                         after = length(eeItemList)
+                         )
+    
+  }
+  return(eeItemList)
+}
+
+eeItemList <- ee_list_func(json_list, rng)
+#eeItemList
+
+```
+
+
+
+# ######################################## #
+# ######################################## #
+# ######################################## #
+
+
+```{r}
+### change the feature collection to your boundary asset location
+shp <- eeItemList[[33]]
+
+clayCont <- ee$Image('OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02')
+clayCont <- clayCont$clip(shp)
+
+sandCont <- ee$Image('OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02')
+sandCont <- sandCont$clip(shp)
+
+carbonCont <- ee$Image('OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02')
+carbonCont <- carbonCont$clip(shp)
+
+soilWater <- ee$Image('OpenLandMap/SOL/SOL_WATERCONTENT-33KPA_USDA-4B1C_M/v01')
+soilWater <- soilWater$clip(shp)
+
+bioclim <- ee$Image('WORLDCLIM/V1/BIO')
+bioclim <- bioclim$clip(shp)
+
+elevation <- ee$ImageCollection('USGS/3DEP/1m') %>%
+  ee$ImageCollection$filterBounds(shp)
+
+elevation <- elevation$mosaic()
+elevation <- elevation$clip(shp)
+
+slope <- ee$Terrain$slope(elevation)
+
+```
+
+
+
+```{r}
+
+image_bands <- list()
+
+input <- <Given_image>$select(bands)
+
+overlay <- input$sampleRegions(
+  collection = <<<Given point collection>>>,
+  properties = ?????,
+  scale = 1
+)
+
+```
+
+
