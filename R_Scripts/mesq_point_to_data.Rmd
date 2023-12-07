@@ -125,7 +125,8 @@ eeItemList <- ee_list_func(json_list, rng)
 
 ```{r}
 ### change the feature collection to your boundary asset location
-shp <- eeItemList[[33]]
+shp <- ee$FeatureCollection('projects/ee-jdawsey/assets/20km_buffer')
+shp <- shp$geometry()
 
 clayCont <- ee$Image('OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02')
 clayCont <- clayCont$clip(shp)
@@ -150,22 +151,111 @@ elevation <- elevation$clip(shp)
 
 slope <- ee$Terrain$slope(elevation)
 
+tigerRoads <- ee$FeatureCollection('TIGER/2016/Roads') %>%
+  ee$FeatureCollection$filterBounds(shp)
+
+
 ```
 
-
+clayCont (250m) - ran
 
 ```{r}
-
-image_bands <- list()
-
-input <- <Given_image>$select(bands)
-
-overlay <- input$sampleRegions(
-  collection = <<<Given point collection>>>,
-  properties = ?????,
-  scale = 1
+drive_image <- ee_image_to_drive(
+  image = clayCont,
+  description = "export",
+  folder = "!imagery",
+  region = shp,
+  scale = 250, #change depending on the image
+  max = 130000000
 )
 
+drive_image$start()
 ```
 
+sandCont (250m) - ran
 
+```{r}
+drive_image <- ee_image_to_drive(
+  image = sandCont,
+  description = "export",
+  folder = "!imagery",
+  region = shp,
+  scale = 250, #change depending on the image
+  max = 130000000
+)
+
+drive_image$start()
+```
+
+carbonCont (250m) - ran
+
+```{r}
+drive_image <- ee_image_to_drive(
+  image = carbonCont,
+  description = "export",
+  folder = "!imagery",
+  region = shp,
+  scale = 250, #change depending on the image
+  max = 130000000
+)
+
+drive_image$start()
+```
+
+soilWater (250m) - ran
+
+```{r}
+drive_image <- ee_image_to_drive(
+  image = soilWater,
+  description = "export",
+  folder = "!imagery",
+  region = shp,
+  scale = 250, #change depending on the image
+  max = 130000000
+)
+
+drive_image$start()
+```
+
+bioclim (927.67)
+
+```{r}
+drive_image <- ee_image_to_drive(
+  image = bioclim,
+  description = "export",
+  folder = "!imagery",
+  region = shp,
+  scale = 927.67, #change depending on the image
+  max = 130000000
+)
+
+drive_image$start()
+```
+
+elevation (1m)
+
+```{r}
+drive_image <- ee_image_to_drive(
+  image = elevation,
+  description = "export",
+  folder = "!imagery",
+  region = shp,
+  scale = 250, #change depending on the image
+  max = 130000000
+)
+
+drive_image$start()
+```
+
+Tiger roads
+
+```{r}
+tiger <- ee_table_to_drive(
+  tigerRoads,
+  description = 'tigerRoads',
+  folder = "!imagery",
+  fileFormat = 'SHP'
+)
+
+tiger$start()
+```

@@ -1,22 +1,26 @@
 Points to data:
 
+****It's going to be easiest to download all but the elevation layer for the whole study area then extract the data to points all at one time.
+
+
 Will need to run the geojson script twice or else it may be worth just pulling in the points directly as shapefiles.
 
-Clip wanted layers by whichever buffers we're examining or a subset of them.
 Add in:
-	- 1m elevation (3dep)
-	- Tiger roads
-	- clay content
-	- sand content
-	- organic carbon
-	- soil water content
+	- 1m slope (3dep)
+	- Tiger roads (find distance from road)
+	- clay content - 250m
+	- sand content - 250m
+	- organic carbon - 250m
+	- soil water content - 250m
 	- lithology
-	- bioclim variables
+	- bioclim variables - 927.67 - bio01(annual mean temp), bio07(temp annual range), bio12 (annual precipitation)
+
+Mask out unusable features from cropland data layer
+	- anything that's not pasture, shrubland, barren, or open and low development.
+	- make sure to set cell size as same as original classified
+	- mask ***outside***
+
 
 Join info from each of the bands onto the points
 
 Save info to a csv
-
-
-
-May be easier to download each of the images I need, load into arcgis, then go through and "extra values to point"
