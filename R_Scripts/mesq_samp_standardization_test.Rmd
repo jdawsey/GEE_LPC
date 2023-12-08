@@ -128,8 +128,8 @@ Years - NM - 2009 (1m RGB), 2011 (1m), 2014 (1m), 2016 (1m), 2018, 2020, 2022
 
 ```{r}
 ### change the feature collection to your boundary asset location
-shp <- eeItemList[[7]] # change per buffer ########### currently standardizing. currently 7
-#Have downloaded 1, 10, 17, 18, 29, 32, 33, 43, and 45 for testing
+shp <- eeItemList[[]] # change per buffer ########### currently standardizing. currently 
+#Have downloaded 1, 5, 7, 10, 17, 18, 24, 29, 30, 31, 32, 33, 36, 39, 43, and 45 for testing
 
 ### choose your imagery and the dates for it
 year <- ee$ImageCollection('USDA/NAIP/DOQQ') %>%
