@@ -23,16 +23,19 @@ library(stats)
 library(car)
 library(caret)
 library(MASS)
+library(pscl)
+library(aod)
 setwd("D:/!!Research/rgee_test/GEE_LPC")
 ```
 
 Import point data -> 
 
 ```{r}
-mesq_pts <- read.csv('D:/!!Research/rgee_test/GEE_LPC/point_data/draft_points_drops.csv',
+mesq_pts <- read.csv('D:/!!Research/rgee_test/GEE_LPC/point_data/draft_points.csv',
                      header = TRUE)
 head(mesq_pts, 5)
 ```
+
 
 Run glm ->
 
@@ -92,11 +95,19 @@ model.data %>%
 car::vif(model)
 ```
 
+```{r}
+pscl::pR2(model)["McFadden"]
+summary(model)
+```
+
+
+
+
 
 Step-wise model building
 
 ```{r}
-mesq_pts_s <- read.csv('D:/!!Research/rgee_test/GEE_LPC/point_data/draft_points.csv',
+mesq_pts_s <- read.csv('D:/!!Research/rgee_test/GEE_LPC/point_data/draft_points_drops.csv',
                      header = TRUE)
 
 set.seed(123)
@@ -123,12 +134,14 @@ mean(predicted.classes == test.data$mesq_pres)
 ```{r}
 full.model <- glm(mesq_pres ~., data = train.data, family = binomial)
 coef(full.model)
+pscl::pR2(full.model)["McFadden"]
 ```
 
 
 ```{r}
 step.model <- full.model %>% stepAIC(trace = FALSE)
 coef(step.model)
+pscl::pR2(step.model)["McFadden"]
 ```
 
 
@@ -153,21 +166,112 @@ predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
 # Prediction accuracy
 observed.classes <- test.data$mesq_pres
 mean(predicted.classes == observed.classes)
+summary(step.model)
 ```
 
 
-results
+Another run
 
+```{r}
+mesq_pts_m <- read.csv('D:/!!Research/rgee_test/GEE_LPC/point_data/draft_points.csv',
+                     header = TRUE)
+```
 
 ```{r}
 # Logistic Regression
 # where F is a binary factor and
 # x1-x3 are continuous predictors
-fit <- glm(F~x1+x2+x3,data=mydata,family=binomial())
+fit <- glm(mesq_pres ~ ann_precip, data = mesq_pts_m, family=binomial())
 summary(fit) # display results
 confint(fit) # 95% CI for the coefficients
 exp(coef(fit)) # exponentiated coefficients
 exp(confint(fit)) # 95% CI for exponentiated coefficients
-predict(fit, type="response") # predicted values
-residuals(fit, type="deviance") # residuals
+#predict(fit, type="response") # predicted values
+#residuals(fit, type="deviance") # residuals
+pscl::pR2(fit)["McFadden"]
 ```
+
+
+
+```{r}
+fit2 <- glm(mesq_pres ~ ann_precip + b3_soilWater_30, data = mesq_pts_m,family=binomial())
+summary(fit2) # display results
+confint(fit2) # 95% CI for the coefficients
+pscl::pR2(fit2)["McFadden"]
+```
+
+```{r}
+fit3 <- glm(mesq_pres ~ ann_precip
+            + b5_clayCont_100 + b2_carbonCont_10 + b4_carbonCont_60, 
+            data = mesq_pts_m,family=binomial())
+summary(fit3) # display results
+confint(fit3) # 95% CI for the coefficients
+pscl::pR2(fit3)["McFadden"]
+car::vif(fit3)
+```
+
+```{r}
+fit4 <- glm(mesq_pres ~ ann_precip
+            + b3_carbonCont_30 + b3_soilWater_30 + b1_clayCont_0, 
+            data = mesq_pts_m,family=binomial())
+summary(fit4) # display results
+confint(fit4) # 95% CI for the coefficients
+pscl::pR2(fit4)["McFadden"]
+confint.default(fit4)
+car::vif(fit4)
+```
+
+
+https://stats.oarc.ucla.edu/r/dae/logit-regression/
+
+```{r}
+wald.test(b = coef(fit4), Sigma = vcov(fit4), Terms = 2:5)
+```
+
+```{r}
+exp(coef(fit4)) # exponentiated coefficients
+exp(confint(fit4)) # 95% CI for exponentiated coefficients
+exp(cbind(OR = coef(fit4), confint(fit4)))
+```
+
+```{r}
+with(fit4, null.deviance - deviance)
+```
+
+```{r}
+with(fit4, df.null - df.residual)
+```
+
+```{r}
+with(fit4, pchisq(null.deviance - deviance, df.null - df.residual, lower.tail = FALSE))
+```
+
+```{r}
+logLik(fit4)
+```
+
+
+
+```{r}
+logLik(fit3)
+```
+
+```{r}
+plot(model, which = 4, id.n = 3)
+```
+
+
+
+```{r}
+fit4.data <- augment(fit4) %>% 
+  mutate(index = 1:n()) 
+
+fit4.data %>% top_n(3, .cooksd)
+
+
+ggplot(fit4.data, aes(index, .std.resid)) + 
+  geom_point(aes(color = mesq_pres), alpha = .5) +
+  theme_bw()
+```
+
+
