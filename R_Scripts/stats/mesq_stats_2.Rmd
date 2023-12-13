@@ -275,3 +275,28 @@ ggplot(fit4.data, aes(index, .std.resid)) +
 ```
 
 
+
+```{r}
+mesq_pts_manus <- read.csv('D:/!!Research/rgee_test/GEE_LPC/point_data/draft_points_drops_manus.csv',
+                     header = TRUE)
+
+fit_graph <- glm(mesquite_presence ~ annual_precip
+            + CarbonContent_30cm + SoilWater_30cm + ClayContent_0cm, 
+            data = mesq_pts_manus,family=binomial())
+summary(fit_graph)
+
+probabilities <- predict(fit_graph, type = "response")
+pred_class <- ifelse(probabilities > 0.5, "pos", "neg")
+
+predictors <- colnames(mesq_pts_manus)
+mydata <- mesq_pts_manus %>%
+  mutate(logit = log(probabilities/(1 - probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+ggplot(mydata, aes(logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_wrap(~predictors, scales = "free_y")
+```
+
