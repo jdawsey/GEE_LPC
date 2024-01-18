@@ -5,12 +5,12 @@ glm(formula = mesq_pres ~ ann_precip + b3_carbonCont_30 + b3_soilWater_30 +
     b1_clayCont_0, family = binomial(), data = mesq_pts_m)
 
 Coefficients:
-                  Estimate Std. Error z value Pr(>|z|)    
-(Intercept)       9.664522   2.085267   4.635 3.58e-06 ***
-ann_precip       -0.016778   0.003827  -4.384 1.17e-05 ***
-b3_carbonCont_30 -2.572870   1.119328  -2.299  0.02153 *  
-b3_soilWater_30  -0.230174   0.046395  -4.961 7.01e-07 ***
-b1_clayCont_0     0.100682   0.037140   2.711  0.00671 ** 
+                  		Estimate Std. 	Error 		z value 		Pr(>|z|)    
+(Intercept)       	9.664522   	2.085267   	4.635 		3.58e-06 ***
+ann_precip       	-0.016778  	0.003827  	-4.384 		1.17e-05 ***
+carbonCont_30 	-2.572870   	1.119328  	-2.299  		0.02153 *  
+soilWater_30  	-0.230174   	0.046395  	-4.961 		7.01e-07 ***
+clayCont_0     		0.100682   	0.037140   	2.711  		0.00671 ** 
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -28,12 +28,12 @@ Chi-squared test:
 X2 = 45.0, df = 4, P(> X2) = 3.9e-09
 
 
-                           OR        2.5 %       97.5 %
-(Intercept)      1.574884e+04 3.059768e+02 1.246704e+06
-ann_precip       9.833621e-01 9.758827e-01 9.906523e-01
-b3_carbonCont_30 7.631619e-02 3.892259e-03 5.116587e-01
-b3_soilWater_30  7.943953e-01 7.245547e-01 8.692645e-01
-b1_clayCont_0    1.105925e+00 1.028944e+00 1.190380e+00
+                           	OR        			2.5 %       		97.5 %
+(Intercept)      	1.574884e+04 	3.059768e+02 	1.246704e+06
+ann_precip       	9.833621e-01 	9.758827e-01 	9.906523e-01
+carbonCont_30 	7.631619e-02 	3.892259e-03 	5.116587e-01
+soilWater_30  	7.943953e-01 	7.245547e-01 	8.692645e-01
+clayCont_0    		1.105925e+00 	1.028944e+00 	1.190380e+00
 
 
 'log Lik.' -486.8679 (df=5)
