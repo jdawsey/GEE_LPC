@@ -64,7 +64,7 @@ def stdrd_func(given_image, given_geo):
     standardized = centered.divide(stddevs)
     return standardized
 
-def smoothing_func(given_image):
+def gauss_smooth_func(given_image):
     ### gaussian smoothing
     gaussianKernel = ee.Kernel.gaussian(
       radius = 3,
@@ -72,7 +72,9 @@ def smoothing_func(given_image):
     )
     
     gaussian_smooth = given_image.convolve(gaussianKernel)
-    
+    return gaussian_smooth
+
+def dog_sharp(given_image):
     ### DoG sharpening
     fat = ee.Kernel.gaussian(
       radius = 3,
@@ -89,5 +91,5 @@ def smoothing_func(given_image):
     
     dog = fat.add(skinny)
     #changed name from sharpened
-    gauss = gaussian_smooth.add(given_image.convolve(dog)) 
-    return gauss
+    dog_fin = given_image.add(given_image.convolve(dog)) 
+    return dog_fin
