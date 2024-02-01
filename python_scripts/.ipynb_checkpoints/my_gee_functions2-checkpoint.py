@@ -170,6 +170,7 @@ def obj_class(ee_item_given, poly_num, given_segmented, max_clusters):
 
 def pb_class(ee_item_list, given_geometry, stdrd_image, max_clusters):
     standardized = stdrd_image
+    shp = ee_item_list[given_geometry]
     
     gauss = gauss_smooth_func(standardized)
     gauss = dog_sharp(gauss)
