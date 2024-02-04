@@ -22,18 +22,13 @@ def ee_list_func(given_json_list):
     
     return ee_item_list
 
-def naip_savi_endvi(given_image):
+def naip_savi(given_image):
     func_img = given_image
     
     # savi
     savi_exp = '((1 + 0.6) * (b("N") - b("R"))) / (b("N") + b("R") + 0.5)'
     savi = func_img.expression(savi_exp).rename('savi')
-    func_img = func_img.addBands(savi)
-
-    # endvi
-    endvi_exp = '((b("N") + b("G")) - (2 * b("B"))) / ((b("N") + b("G")) + (2 + b("B")))'
-    endvi = func_img.expression(endvi_exp).rename('endvi')
-    func_final_img = func_img.addBands(endvi)
+    func_final_img = func_img.addBands(savi)
     
     return func_final_img 
 
@@ -104,7 +99,7 @@ def stdrd_ref_func(ee_item_list, given_geometry):
     year = year.mosaic() # mosaicing so that becomes a single image that can be worked with
     clip = year.clip(shp) # clip to the polygon bounds
     
-    n_clip = naip_savi_endvi(clip)
+    n_clip = naip_savi(clip)
     standardized = stdrd_func(n_clip, shp)
     return standardized
 
@@ -113,7 +108,7 @@ def segmentation_func(ee_item_list, given_geometry, stdrd_image):
     gauss = gauss_smooth_func(standardized)
     gauss = dog_sharp(gauss)
     
-    bands = ['R', 'G', 'B', 'N', 'savi', 'endvi']
+    bands = ['R', 'G', 'B', 'N', 'savi']
     seed_spacing = 5
     seeds = ee.Algorithms.Image.Segmentation.seedGrid(seed_spacing, 'hex')
     
@@ -123,9 +118,9 @@ def segmentation_func(ee_item_list, given_geometry, stdrd_image):
       #size = 4, # shouldn't matter since have seed image
       compactness = 0, # spatial weighting not taken into account at 0. More compact at higher values
       connectivity = 8, # 4 or 8
-      #neighborhoodSize = 256,
+      neighborhoodSize = 2 * seed_spacing,
       seeds = seeds # the "seedGrid" given
-    ).select(['R_mean', 'G_mean', 'B_mean', 'N_mean', 'savi_mean', 'endvi_mean', 'clusters'], ['R', 'G', 'B', 'N', 'savi', 'endvi', 'clusters'])
+    ).select(['R_mean', 'G_mean', 'B_mean', 'N_mean', 'savi_mean', 'clusters'], ['R', 'G', 'B', 'N', 'savi', 'clusters'])
     
     clusters = snic.select('clusters')
     stdDev = gauss.addBands(clusters).reduceConnectedComponents(ee.Reducer.stdDev(), 'clusters', 256)
@@ -192,7 +187,7 @@ def pasture_visualizer(ee_item_list, given_geometry, stdrd_image, seed_space, gr
     gauss = gauss_smooth_func(standardized)
     gauss = dog_sharp(gauss)
     
-    bands = ['R', 'G', 'B', 'N', 'savi', 'endvi']
+    bands = ['R', 'G', 'B', 'N', 'savi']
     seed_spacing = seed_space
     seeds = ee.Algorithms.Image.Segmentation.seedGrid(seed_spacing, grid_type)
     
@@ -202,9 +197,9 @@ def pasture_visualizer(ee_item_list, given_geometry, stdrd_image, seed_space, gr
       #size = 4, # shouldn't matter since have seed image
       compactness = 0, # spatial weighting not taken into account at 0. More compact at higher values
       connectivity = 8, # 4 or 8
-      #neighborhoodSize = 256,
+      neighborhoodSize = 2 * seed_spacing,
       seeds = seeds # the "seedGrid" given
-    ).select(['R_mean', 'G_mean', 'B_mean', 'N_mean', 'savi_mean', 'endvi_mean', 'clusters'], ['R', 'G', 'B', 'N', 'savi', 'endvi', 'clusters'])
+    ).select(['R_mean', 'G_mean', 'B_mean', 'N_mean', 'savi_mean', 'clusters'], ['R', 'G', 'B', 'N', 'savi', 'clusters'])
     
     clusters = snic.select('clusters')
     stdDev = gauss.addBands(clusters).reduceConnectedComponents(ee.Reducer.stdDev(), 'clusters', 256)
