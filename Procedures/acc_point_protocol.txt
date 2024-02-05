@@ -1,0 +1,8 @@
+Once know the variables that best classify mesquite then pull the centroids from the original classification and find how it classifies each of those point to get a better estimate.
+
+Alternatively could vectorize the low resolution data, interpolate it to smooth values, and then use it for classification
+
+
+
+# create the accuracy assessment points based just off of what the clusterer considers mesquite.
+# create the accuracy assessment points, join them altogether, load into gee, then assign the values from each datasource.
