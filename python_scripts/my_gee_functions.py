@@ -94,10 +94,10 @@ def dog_sharp(given_image):
     dog_fin = given_image.add(given_image.convolve(dog)) 
     return dog_fin
 
-def stdrd_ref_func(ee_item_list, given_geometry):
+def stdrd_ref_func(ee_item_list):
     ee_items = ee_item_list
-    poly_num = given_geometry
-    shp = ee_items[poly_num] # list
+    #poly_num = given_geometry
+    shp = ee_items # list
     
     year = ee.ImageCollection('USDA/NAIP/DOQQ').filterDate('2016-01-01', '2016-12-31').filterBounds(shp)
     
@@ -108,7 +108,7 @@ def stdrd_ref_func(ee_item_list, given_geometry):
     standardized = stdrd_func(n_clip, shp)
     return standardized
 
-def segmentation_func(ee_item_list, given_geometry, stdrd_image):
+def segmentation_func(stdrd_image):
     standardized = stdrd_image
     gauss = gauss_smooth_func(standardized)
     gauss = dog_sharp(gauss)
@@ -147,9 +147,9 @@ def segmentation_func(ee_item_list, given_geometry, stdrd_image):
     ]).float()
     return objectPropertiesImage
 
-def obj_class(ee_item_given, poly_num, given_segmented, max_clusters):
+def obj_class(ee_item_given, given_segmented, max_clusters):
     objectPropertiesImage = given_segmented
-    shp = ee_item_given[poly_num]
+    shp = ee_item_given
     
     training = objectPropertiesImage.sample(
       region = shp,
@@ -168,9 +168,9 @@ def obj_class(ee_item_given, poly_num, given_segmented, max_clusters):
 
 
 
-def pb_class(ee_item_list, given_geometry, stdrd_image, max_clusters):
+def pb_class(ee_item_list, stdrd_image, max_clusters):
     standardized = stdrd_image
-    shp = ee_item_list[given_geometry]
+    shp = ee_item_list
     
     gauss = gauss_smooth_func(standardized)
     gauss = dog_sharp(gauss)
