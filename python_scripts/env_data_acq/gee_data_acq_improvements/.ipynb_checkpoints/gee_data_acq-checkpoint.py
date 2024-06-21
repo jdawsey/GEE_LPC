@@ -125,7 +125,7 @@ class ImageStackBuilder:
     def __init__(self, image_collections):
         self.image_collections = image_collections
 
-    def build_image_stack(self, user_specified = None):
+    def build_image_stack(self, user_specified = None, rast_crs = 'EPSG:4326'):
         images = []
         
         if user_specified is None:
@@ -137,17 +137,19 @@ class ImageStackBuilder:
                 image_band_list = image_bands.split()
                 if self.image_collections.loc[index, 'resample'] == True:
                     asset_image = ee.Image(collection_loc)
+                    resample_scale = int(self.image_collections.loc[index, 'resample_res'])
+                    rasample_method = str(self.image_collections.loc[index, 'resample_method'])
                     #print("this is true")
                     for image_band_index in range(len(image_band_list)):
                         band_select = asset_image.select([image_band_list[image_band_index]])
-                        band_select = band_select.resample('bicubic').reproject('EPSG:4326', scale = self.image_collections.loc[index, 'resample_res'])
+                        band_select = band_select.resample(resample_method).reproject(rast_crs, scale = resample_scale)
                         band_select = band_select.rename(bands_rename_list[image_band_index])
                         images.append(band_select)
                 else:
                     asset_image = ee.Image(collection_loc)
                     #print("this is false")
                     for image_band_index in range(len(image_band_list)):
-                        band_select = asset_image.select([image_band_list[image_band_index]])
+                        band_select = asset_image.select([image_band_list[image_band_index]]).reproject(rast_crs)
                         band_select = band_select.rename(bands_rename_list[image_band_index])
                         images.append(band_select)
             return ee.Image(images)
@@ -161,17 +163,19 @@ class ImageStackBuilder:
                 image_band_list = image_bands.split()
                 if self.image_collections.loc[index, 'resample'] == True:
                     asset_image = ee.Image(collection_loc)
+                    resample_scale = int(self.image_collections.loc[index, 'resample_res'])
+                    resample_method = str(self.image_collections.loc[index, 'resample_method'])
                     #print("this is true")
                     for image_band_index in range(len(image_band_list)):
                         band_select = asset_image.select([image_band_list[image_band_index]])
-                        band_select = band_select.resample('bicubic').reproject('EPSG:4326', scale = self.image_collections.loc[index, 'resample_res'])
+                        band_select = band_select.resample(resample_method).reproject(rast_crs, scale = resample_scale)
                         band_select = band_select.rename(bands_rename_list[image_band_index])
                         images.append(band_select)
                 else:
                     asset_image = ee.Image(collection_loc)
                     #print("this is false")
                     for image_band_index in range(len(image_band_list)):
-                        band_select = asset_image.select([image_band_list[image_band_index]])
+                        band_select = asset_image.select([image_band_list[image_band_index]]).reproject(rast_crs)
                         band_select = band_select.rename(bands_rename_list[image_band_index])
                         images.append(band_select)
 
@@ -231,13 +235,13 @@ class PointEnvData:
 ### Imports a file containing spatial polygon data and converts it to a geodataframe.
 class PolyToGDF:
     def __init__(self, poly_path):
-        #self.points_gdf = points_gdf
         self.poly_path = poly_path
 
     def poly_to_gdf(self, crs):
         poly_gdf = gpd.read_file(self.poly_path)
         poly_gdf.set_crs(crs, inplace = True)
         return poly_gdf
+            
 
 
 ### Creates a fishnet over the bounds of a polygon (or polygons). The cell size and
@@ -326,6 +330,15 @@ class PolygonFishnet:
                 file_path = os.path.join(output_folder, f'cell_{idx}.shp')
                 intersecting_polygons.to_file(file_path)
 
+    def export_fishnet_cells(self, output_folder):
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        
+        for idx, cell in self.grid.iterrows():
+            cell_gdf = gpd.GeoDataFrame([cell], crs=self.crs)
+            file_path = os.path.join(output_folder, f'fishnet_cell_{idx}.shp')
+            cell_gdf.to_file(file_path)
+
 
 
 ### Exports band information from an ee.Image to each polygon that overlaps it. Pull on a 
@@ -339,7 +352,7 @@ class ImageryDownload:
         self.shp_files = [f for f in os.listdir(self.shp_dir) if f.endswith('.shp')]
         self.image_stack = image_stack
 
-    def process_shp_files(self):
+    def process_shp_files(self, scale = "30"):
         count = 0
         # Iterate directory
         for path in os.listdir(self.shp_dir):
@@ -357,7 +370,7 @@ class ImageryDownload:
                 feature_collection = geemap.shp_to_ee(shp_path)
                 feature = feature_collection.geometry()
                 image_path = f'{self.folder_directory}/{self.data_folder}/cell_{index_num}_env_image.tif'
-                geemap.ee_export_image(self.image_stack, image_path, scale = 30, region = feature)
+                geemap.ee_export_image(self.image_stack, image_path, scale, region = feature)
                 print(f'Export task started for {shp_file}.')
                 time.sleep(15)
             else:

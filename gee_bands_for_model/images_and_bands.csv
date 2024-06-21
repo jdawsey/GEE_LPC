@@ -1,0 +1,67 @@
+collection,collection_loc,bands,band_rename,base_re,unit,resample,resample_res,resample_method
+clay_0_5,projects/sat-io/open-datasets/polaris/clay_mean/clay_0_5,b1,clay_0_5,30,m,TRUE,100,bilinear
+clay_5_15,projects/sat-io/open-datasets/polaris/clay_mean/clay_5_15,b1,clay_5_15,30,m,TRUE,100,bilinear
+clay_15_30,projects/sat-io/open-datasets/polaris/clay_mean/clay_15_30,b1,clay_15_30,30,m,TRUE,100,bilinear
+clay_30_60,projects/sat-io/open-datasets/polaris/clay_mean/clay_30_60,b1,clay_30_60,30,m,TRUE,100,bilinear
+clay_60_100,projects/sat-io/open-datasets/polaris/clay_mean/clay_60_100,b1,clay_60_100,30,m,TRUE,100,bilinear
+clay_100_200,projects/sat-io/open-datasets/polaris/clay_mean/clay_100_200,b1,clay_100_200,30,m,TRUE,100,bilinear
+sand_0_5,projects/sat-io/open-datasets/polaris/sand_mean/sand_0_5,b1,sand_0_5,30,m,TRUE,100,bilinear
+sand_5_15,projects/sat-io/open-datasets/polaris/sand_mean/sand_5_15,b1,sand_5_15,30,m,TRUE,100,bilinear
+sand_15_30,projects/sat-io/open-datasets/polaris/sand_mean/sand_15_30,b1,sand_15_30,30,m,TRUE,100,bilinear
+sand_30_60,projects/sat-io/open-datasets/polaris/sand_mean/sand_30_60,b1,sand_30_60,30,m,TRUE,100,bilinear
+sand_60_100,projects/sat-io/open-datasets/polaris/sand_mean/sand_60_100,b1,sand_60_100,30,m,TRUE,100,bilinear
+sand_100_200,projects/sat-io/open-datasets/polaris/sand_mean/sand_100_200,b1,sand_100_200,30,m,TRUE,100,bilinear
+silt_0_5,projects/sat-io/open-datasets/polaris/silt_mean/silt_0_5,b1,silt_0_5,30,m,TRUE,100,bilinear
+silt_5_15,projects/sat-io/open-datasets/polaris/silt_mean/silt_5_15,b1,silt_5_15,30,m,TRUE,100,bilinear
+silt_15_30,projects/sat-io/open-datasets/polaris/silt_mean/silt_15_30,b1,silt_15_30,30,m,TRUE,100,bilinear
+silt_30_60,projects/sat-io/open-datasets/polaris/silt_mean/silt_30_60,b1,silt_30_60,30,m,TRUE,100,bilinear
+silt_60_100,projects/sat-io/open-datasets/polaris/silt_mean/silt_60_100,b1,silt_60_100,30,m,TRUE,100,bilinear
+silt_100_200,projects/sat-io/open-datasets/polaris/silt_mean/silt_100_200,b1,silt_100_200,30,m,TRUE,100,bilinear
+bd_0_5,projects/sat-io/open-datasets/polaris/bd_mean/bd_0_5,b1,bd_0_5,30,m,TRUE,100,bilinear
+bd_5_15,projects/sat-io/open-datasets/polaris/bd_mean/bd_5_15,b1,bd_5_15,30,m,TRUE,100,bilinear
+bd_15_30,projects/sat-io/open-datasets/polaris/bd_mean/bd_15_30,b1,bd_15_30,30,m,TRUE,100,bilinear
+bd_30_60,projects/sat-io/open-datasets/polaris/bd_mean/bd_30_60,b1,bd_30_60,30,m,TRUE,100,bilinear
+bd_60_100,projects/sat-io/open-datasets/polaris/bd_mean/bd_60_100,b1,bd_60_100,30,m,TRUE,100,bilinear
+bd_100_200,projects/sat-io/open-datasets/polaris/bd_mean/bd_100_200,b1,bd_100_200,30,m,TRUE,100,bilinear
+om_0_5,projects/sat-io/open-datasets/polaris/om_mean/om_0_5,b1,om_0_5,30,m,TRUE,100,bilinear
+om_5_15,projects/sat-io/open-datasets/polaris/om_mean/om_5_15,b1,om_5_15,30,m,TRUE,100,bilinear
+om_15_30,projects/sat-io/open-datasets/polaris/om_mean/om_15_30,b1,om_15_30,30,m,TRUE,100,bilinear
+om_30_60,projects/sat-io/open-datasets/polaris/om_mean/om_30_60,b1,om_30_60,30,m,TRUE,100,bilinear
+om_60_100,projects/sat-io/open-datasets/polaris/om_mean/om_60_100,b1,om_60_100,30,m,TRUE,100,bilinear
+om_100_200,projects/sat-io/open-datasets/polaris/om_mean/om_100_200,b1,om_100_200,30,m,TRUE,100,bilinear
+ph_0_5,projects/sat-io/open-datasets/polaris/ph_mean/ph_0_5,b1,ph_0_5,30,m,TRUE,100,bilinear
+ph_5_15,projects/sat-io/open-datasets/polaris/ph_mean/ph_5_15,b1,ph_5_15,30,m,TRUE,100,bilinear
+ph_15_30,projects/sat-io/open-datasets/polaris/ph_mean/ph_15_30,b1,ph_15_30,30,m,TRUE,100,bilinear
+ph_30_60,projects/sat-io/open-datasets/polaris/ph_mean/ph_30_60,b1,ph_30_60,30,m,TRUE,100,bilinear
+ph_60_100,projects/sat-io/open-datasets/polaris/ph_mean/ph_60_100,b1,ph_60_100,30,m,TRUE,100,bilinear
+ph_100_200,projects/sat-io/open-datasets/polaris/ph_mean/ph_100_200,b1,ph_100_200,30,m,TRUE,100,bilinear
+ksat_0_5,projects/sat-io/open-datasets/polaris/ksat_mean/ksat_0_5,b1,ksat_0_5,30,m,TRUE,100,bilinear
+ksat_5_15,projects/sat-io/open-datasets/polaris/ksat_mean/ksat_5_15,b1,ksat_5_15,30,m,TRUE,100,bilinear
+ksat_15_30,projects/sat-io/open-datasets/polaris/ksat_mean/ksat_15_30,b1,ksat_15_30,30,m,TRUE,100,bilinear
+ksat_30_60,projects/sat-io/open-datasets/polaris/ksat_mean/ksat_30_60,b1,ksat_30_60,30,m,TRUE,100,bilinear
+ksat_60_100,projects/sat-io/open-datasets/polaris/ksat_mean/ksat_60_100,b1,ksat_60_100,30,m,TRUE,100,bilinear
+ksat_100_200,projects/sat-io/open-datasets/polaris/ksat_mean/ksat_100_200,b1,ksat_100_200,30,m,TRUE,100,bilinear
+theta_r_0_5,projects/sat-io/open-datasets/polaris/theta_r_mean/theta_r_0_5,b1,theta_r_0_5,30,m,TRUE,100,bilinear
+theta_r_5_15,projects/sat-io/open-datasets/polaris/theta_r_mean/theta_r_5_15,b1,theta_r_5_15,30,m,TRUE,100,bilinear
+theta_r_15_30,projects/sat-io/open-datasets/polaris/theta_r_mean/theta_r_15_30,b1,theta_r_15_30,30,m,TRUE,100,bilinear
+theta_r_30_60,projects/sat-io/open-datasets/polaris/theta_r_mean/theta_r_30_60,b1,theta_r_30_60,30,m,TRUE,100,bilinear
+theta_r_60_100,projects/sat-io/open-datasets/polaris/theta_r_mean/theta_r_60_100,b1,theta_r_60_100,30,m,TRUE,100,bilinear
+theta_r_100_200,projects/sat-io/open-datasets/polaris/theta_r_mean/theta_r_100_200,b1,theta_r_100_200,30,m,TRUE,100,bilinear
+theta_s_0_5,projects/sat-io/open-datasets/polaris/theta_s_mean/theta_s_0_5,b1,theta_s_0_5,30,m,TRUE,100,bilinear
+theta_s_5_15,projects/sat-io/open-datasets/polaris/theta_s_mean/theta_s_5_15,b1,theta_s_5_15,30,m,TRUE,100,bilinear
+theta_s_15_30,projects/sat-io/open-datasets/polaris/theta_s_mean/theta_s_15_30,b1,theta_s_15_30,30,m,TRUE,100,bilinear
+theta_s_30_60,projects/sat-io/open-datasets/polaris/theta_s_mean/theta_s_30_60,b1,theta_s_30_60,30,m,TRUE,100,bilinear
+theta_s_60_100,projects/sat-io/open-datasets/polaris/theta_s_mean/theta_s_60_100,b1,theta_s_60_100,30,m,TRUE,100,bilinear
+theta_s_100_200,projects/sat-io/open-datasets/polaris/theta_s_mean/theta_s_100_200,b1,theta_s_100_200,30,m,TRUE,100,bilinear
+calcium_carbonate,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/chemical/caco3,b1,caco3,800,m,TRUE,100,bilinear
+cation exchange capacity,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/chemical/cec,b1,cec,800,m,TRUE,100,bilinear
+electrical conductance,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/chemical/ec,b1,ec,800,m,TRUE,100,bilinear
+,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/chemical/sar,b1,sar,800,m,TRUE,100,bilinear
+,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/land_use/kw_025,b1,kw_025,800,m,TRUE,100,bilinear
+,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/land_use/resdept,b1,resdept,800,m,TRUE,100,bilinear
+soil depth,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/land_use/soil_depth,b1,soil_depth,800,m,TRUE,100,bilinear
+wind erodibility index,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/land_use/wind_erodibility_index,b1,wind_erodibility,800,m,TRUE,100,bilinear
+,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/physical/rf_025,b1,rf_025,800,m,TRUE,100,bilinear
+water storage,projects/earthengine-legacy/assets/projects/sat-io/open-datasets/CSRL_soil_properties/physical/water_storage,b1,water_storage,800,m,TRUE,100,bilinear
+ann rain,WORLDCLIM/V1/BIO,bio12,ann_rain,30,arc seconds,TRUE,100,bilinear
+temp range,WORLDCLIM/V1/BIO,bio07,temp_range,30,arc seconds,TRUE,100,bilinear
