@@ -12,7 +12,47 @@ import rasterio
 from rasterio.windows import from_bounds
 
 
+### Allows for the generation of an ee.Image containing n-bands specified by the user.
+### It pulls the bands from a CSV file, renames them, and will resample them to the 
+### desired resolution.
+def build_image_stack(given_image_collection, user_specified=None, rast_crs='EPSG:4326'):
+    images = []
+    
+    for index in range(len(given_image_collection)):
+        collection_loc = given_image_collection.loc[index, 'collection_loc']
+        band_rename = given_image_collection.loc[index, 'band_rename']
+        bands_rename_list = band_rename.split()
+        image_bands = given_image_collection.loc[index, 'bands']
+        image_band_list = image_bands.split()
+        
+        asset_image = ee.Image(collection_loc)
+        
+        if given_image_collection.loc[index, 'resample']:
+            resample_scale = int(given_image_collection.loc[index, 'resample_res'])
+            resample_method = str(given_image_collection.loc[index, 'resample_method'])
+            for image_band_index in range(len(image_band_list)):
+                band_select = asset_image.select([image_band_list[image_band_index]])
+                band_select = band_select.resample(resample_method).reproject(rast_crs, scale=resample_scale)
+                band_select = band_select.rename(bands_rename_list[image_band_index])
+                images.append(band_select)
+        else:
+            for image_band_index in range(len(image_band_list)):
+                band_select = asset_image.select([image_band_list[image_band_index]]).reproject(rast_crs)
+                band_select = band_select.rename(bands_rename_list[image_band_index])
+                images.append(band_select)
+                
+    if user_specified is None:
+        return ee.Image(images)
+    else:
+        user_created_bands = ee.Image([user_specified])
+        original_bands = ee.Image([images])
+        merged_bands = original_bands.addBands(user_created_bands)
+        return merged_bands
 
+
+
+
+"""
 ### Allows for the generation of an ee.Image containing n-bands specified by the user.
 ### It pulls the bands from a CSV file, renames them, and will resample them to the 
 ### desired resolution.
@@ -78,3 +118,4 @@ class ImageStackBuilder:
             original_bands = ee.Image([images])
             merged_bands = original_bands.addBands(user_created_bands)
             return merged_bands
+"""
