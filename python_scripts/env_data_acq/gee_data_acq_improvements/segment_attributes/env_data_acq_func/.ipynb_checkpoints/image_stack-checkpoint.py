@@ -11,10 +11,9 @@ import re
 import rasterio
 from rasterio.windows import from_bounds
 
-
-### Allows for the generation of an ee.Image containing n-bands specified by the user.
-### It pulls the bands from a CSV file, renames them, and will resample them to the 
-### desired resolution.
+"""
+Allows for the generation of an ee.Image containing n-bands specified by the user. It pulls the bands from a CSV file, renames them, and will resample them to the desired resolution.
+"""
 def build_image_stack(given_image_collection, user_specified=None, rast_crs='EPSG:4326'):
     images = []
     

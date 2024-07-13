@@ -26,7 +26,8 @@ def process_shp_files(folder_directory, data_folder, image_stack, shp_dir, get_s
                     continue
 
                 try:
-                    polygon_imagery = saf.get_imagery(feature_collection, 'USDA/NAIP/DOQQ', start_filter_date='2016-01-01', end_filter_date='2016-12-31')
+                    polygon_imagery = saf.get_imagery(feature_collection, 'USDA/NAIP/DOQQ', 
+                                                      start_filter_date='2016-01-01', end_filter_date='2016-12-31')
                 except Exception as e:
                     print(f"Error getting imagery: {e}")
                     continue
@@ -34,7 +35,8 @@ def process_shp_files(folder_directory, data_folder, image_stack, shp_dir, get_s
                 band_maths = {'savi': '((1 + 0.6) * (b("N") - b("R"))) / (b("N") + b("R") + 0.5)',
                               'endvi': '((b("N") + b("G")) - (2 * b("B"))) / ((b("N") + b("G")) + (2 + b("B")))'}
                 try:
-                    preprocessed = saf.preprocess_image(polygon_imagery, given_scale=1, given_region=feature_collection, band_expressions=band_maths)
+                    preprocessed = saf.preprocess_image(polygon_imagery, given_scale=1, 
+                                                        given_region=feature_collection, band_expressions=band_maths)
                 except Exception as e:
                     print(f"Error preprocessing image: {e}")
                     continue
@@ -54,14 +56,14 @@ def process_shp_files(folder_directory, data_folder, image_stack, shp_dir, get_s
                     continue
                 
                 try:
-                    image_stack.addBands(segment_attributes)
+                    image_stack_w_seg = image_stack.addBands(segment_attributes)
                 except Exception as e:
                     print(f"Error adding bands to image stack: {e}")
                     continue
 
                 out_csv = f'{folder_directory}/{data_folder}/cell_{index_num}_with_env_data.csv'
                 try:
-                    response = geemap.extract_values_to_points(feature_collection, image_stack, out_csv)
+                    response = geemap.extract_values_to_points(feature_collection, image_stack_w_seg, out_csv)
                     print(f"Response: {response}")
                 except Exception as e:
                     print(f"Error extracting values to points: {e}")
