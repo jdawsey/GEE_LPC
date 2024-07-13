@@ -1,0 +1,23 @@
+Contained within this folder:
+
+Folders
+- gee_data_acq_improvements 
+    - holds scripts and notebooks that are being tested for finalized use
+
+Notebooks
+- fishnet_pulling_data
+    - a notebook with code used for pulling environmental data from the fishnetted regions
+- regex
+    - a notebook used to test regex functions for seperating "gcs" files and deleting them
+state_overlap
+    - a notebook for determining what states overlap a given point. Initially created with the idea of use for generating smaller regions for pulling point data
+testing_grid_functions
+    - the initial notebook used for creating fishnets over groups of points
+
+Scripts
+- fishnet_class
+    - Holds functions for creating fishnets over groups of points
+- gee_data_acq
+    - Functions for creating a stack of environmental layers for extraction to points
+- shp_processor
+    - Exports CSV files containing environmental data for each set of points
