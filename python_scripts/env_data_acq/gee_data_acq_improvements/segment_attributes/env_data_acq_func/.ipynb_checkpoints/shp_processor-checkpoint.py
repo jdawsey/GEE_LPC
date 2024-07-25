@@ -56,7 +56,8 @@ def process_shp_files(folder_directory, data_folder, image_stack, shp_dir, get_s
                     continue
                 
                 try:
-                    image_stack_w_seg = image_stack.addBands(segment_attributes)
+                    #image_stack_w_seg = image_stack.addBands(segment_attributes)
+                    image_stack_w_seg = image_stack.addBands(segmented)
                 except Exception as e:
                     print(f"Error adding bands to image stack: {e}")
                     continue
@@ -64,12 +65,13 @@ def process_shp_files(folder_directory, data_folder, image_stack, shp_dir, get_s
                 out_csv = f'{folder_directory}/{data_folder}/cell_{index_num}_with_env_data.csv'
                 try:
                     response = geemap.extract_values_to_points(feature_collection, image_stack_w_seg, out_csv)
-                    print(f"Response: {response}")
+                    #print(f"Response: {response}")
                 except Exception as e:
                     print(f"Error extracting values to points: {e}")
                     continue
 
                 print(f'Export task started for {shp_file}.')
+                response
                 time.sleep(15)
             else:
                 index_num += 1
