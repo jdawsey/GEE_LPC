@@ -1,3 +1,5 @@
 from .image_preprocessing import get_imagery, preprocess_image
 from .snic_segment_functions import segmentation_attributes
 from .segmented_download import segmented_download
+from .env_data_only import get_env_data
+from .segmented_data_only import get_segment_attributes

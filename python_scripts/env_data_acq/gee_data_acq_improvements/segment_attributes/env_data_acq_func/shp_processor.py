@@ -4,7 +4,9 @@ import time
 import geemap
 import segment_attributes_func as saf
 
-
+"""
+Use this function to pull attributes of images to points. Exports as a CSV.
+"""
 def process_shp_files(folder_directory, data_folder, image_stack, shp_dir, get_segment_attributes=True, segment_attributes=None):
     shp_files = [f for f in os.listdir(shp_dir) if f.endswith('.shp')]
     
