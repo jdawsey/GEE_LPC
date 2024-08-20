@@ -13,6 +13,8 @@ def file_address_func(file_dir_given):
     return addresses
 
 
+
+
 def ee_list_func(given_json_list):
     rng = range(len(given_json_list))
     ee_item_list = []
@@ -21,6 +23,22 @@ def ee_list_func(given_json_list):
         ee_item_list.append(geemap.geojson_to_ee(given_json_list[item]))
     
     return ee_item_list
+
+
+
+
+def naip_func(ee_item_list):
+    #poly_num = given_geometry
+    shp = ee_item_list # list
+    
+    year = ee.ImageCollection('USDA/NAIP/DOQQ').filterDate('2016-01-01', '2016-12-31').filterBounds(shp)
+    
+    year = year.mosaic() # mosaicing so that becomes a single image that can be worked with
+    clip = year.clip(shp) # clip to the polygon bounds
+    return clip
+
+
+
 
 def naip_savi_endvi(given_image):
     func_img = given_image
@@ -36,6 +54,9 @@ def naip_savi_endvi(given_image):
     func_final_img = func_img.addBands(endvi)
     
     return func_final_img 
+
+
+
 
 def stdrd_func(given_image, given_geo):
     func_img = given_image
@@ -64,6 +85,9 @@ def stdrd_func(given_image, given_geo):
     standardized = centered.divide(stddevs)
     return standardized
 
+
+
+
 def gauss_smooth_func(given_image):
     ### gaussian smoothing
     gaussianKernel = ee.Kernel.gaussian(
@@ -73,6 +97,9 @@ def gauss_smooth_func(given_image):
     
     gaussian_smooth = given_image.convolve(gaussianKernel)
     return gaussian_smooth
+
+
+
 
 def dog_sharp(given_image):
     ### DoG sharpening
@@ -94,27 +121,16 @@ def dog_sharp(given_image):
     dog_fin = given_image.add(given_image.convolve(dog)) 
     return dog_fin
 
-def stdrd_ref_func(ee_item_list):
-    ee_items = ee_item_list
-    #poly_num = given_geometry
-    shp = ee_items # list
-    
-    year = ee.ImageCollection('USDA/NAIP/DOQQ').filterDate('2016-01-01', '2016-12-31').filterBounds(shp)
-    
-    year = year.mosaic() # mosaicing so that becomes a single image that can be worked with
-    clip = year.clip(shp) # clip to the polygon bounds
-    
-    n_clip = naip_savi_endvi(clip)
-    standardized = stdrd_func(n_clip, shp)
-    return standardized
+
+
 
 def segmentation_func(stdrd_image, seed_spacing = 5, snic_compactness = 0, snic_connectivity = 4, seed_grid_shape = 'hex'):
     """
     Creates a segmented image using the script shown in the GEE workshop video.
     May add the option to change the SNIC function settings"""
-    standardized = stdrd_image
-    gauss = gauss_smooth_func(standardized)
-    gauss = dog_sharp(gauss)
+    #standardized = stdrd_image
+    #gauss = gauss_smooth_func(standardized)
+    #gauss = dog_sharp(gauss)
     
     bands = ['R', 'G', 'B', 'N', 'savi', 'endvi']
     # seed_spacing default is now 5
@@ -123,7 +139,7 @@ def segmentation_func(stdrd_image, seed_spacing = 5, snic_compactness = 0, snic_
     
     # Run SNIC on the regular square grid.
     snic = ee.Algorithms.Image.Segmentation.SNIC(
-      image = gauss,
+      image = stdrd_image,
       #size = 4, # shouldn't matter since have seed image
       compactness = snic_compactness, # spatial weighting not taken into account at 0. More compact at higher values
       connectivity = snic_connectivity, # 4 or 8
@@ -133,7 +149,7 @@ def segmentation_func(stdrd_image, seed_spacing = 5, snic_compactness = 0, snic_
              ['R', 'G', 'B', 'N', 'savi', 'endvi', 'clusters'])
     
     clusters = snic.select('clusters')
-    stdDev = gauss.addBands(clusters).reduceConnectedComponents(ee.Reducer.stdDev(), 'clusters', 256)
+    stdDev = stdrd_image.addBands(clusters).reduceConnectedComponents(ee.Reducer.stdDev(), 'clusters', 256)
     area = ee.Image.pixelArea().addBands(clusters).reduceConnectedComponents(ee.Reducer.sum(), 'clusters', 256)
     minMax = clusters.reduceNeighborhood(ee.Reducer.minMax(), ee.Kernel.square(1))
     perimeterPixels = minMax.select(0).neq(minMax.select(1)).rename('perimeter')
@@ -152,7 +168,11 @@ def segmentation_func(stdrd_image, seed_spacing = 5, snic_compactness = 0, snic_
     ]).float()
     return objectPropertiesImage
 
-def obj_class(ee_item_given, given_segmented, train_scale = 1, train_pixels = 10000, max_clusters, segmented_as_bands = False, band_list = None):
+
+
+
+def obj_class(ee_item_given, given_segmented, train_scale = 1, train_pixels = 10000, 
+              max_clusters = 15, tilescale = 2, segmented_as_bands = False, band_list = None):
     """
     give the class an the polygon to being classified, the segmented image, and the maximum
     number of clusters for the algorithm to output. Can set segment_properties to be 'True'
@@ -163,7 +183,8 @@ def obj_class(ee_item_given, given_segmented, train_scale = 1, train_pixels = 10
     training = objectPropertiesImage.sample(
       region = shp,
       scale = train_scale, #change depending on year - default is 1
-      numPixels = train_pixels #default is 10000
+      numPixels = train_pixels, #default is 10000
+      tileScale = tilescale
     )
     
     ### the actual classification function
