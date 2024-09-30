@@ -39,10 +39,25 @@ def naip_func(ee_item_list):
 
 
 
+def naip_savi(given_image):
+    # savi
+    savi_exp = '((1 + 0.6) * (b("N") - b("R"))) / (b("N") + b("R") + 0.5)'
+    savi = given_image.expression(savi_exp).rename('savi')
+    func_final_img = given_image.addBands(savi)
+    return func_final_img 
+
+def naip_endvi(given_image):
+    # endvi
+    endvi_exp = '((b("N") + b("G")) - (2 * b("B"))) / ((b("N") + b("G")) + (2 + b("B")))'
+    endvi = given_image.expression(endvi_exp).rename('endvi')
+    func_final_img = given_image.addBands(endvi)
+    return func_final_img 
+
 
 def naip_savi_endvi(given_image):
+    # deprecated
     func_img = given_image
-    
+
     # savi
     savi_exp = '((1 + 0.6) * (b("N") - b("R"))) / (b("N") + b("R") + 0.5)'
     savi = func_img.expression(savi_exp).rename('savi')
@@ -54,8 +69,6 @@ def naip_savi_endvi(given_image):
     func_final_img = func_img.addBands(endvi)
     
     return func_final_img 
-
-
 
 
 def stdrd_func(given_image, given_geo):
@@ -88,10 +101,20 @@ def stdrd_func(given_image, given_geo):
 
 
 
-def gauss_smooth_func(given_image):
+def gauss_smooth_three(given_image):
     ### gaussian smoothing
     gaussianKernel = ee.Kernel.gaussian(
       radius = 3,
+      units = 'pixels'
+    )
+    
+    gaussian_smooth = given_image.convolve(gaussianKernel)
+    return gaussian_smooth
+
+def gauss_smooth_five(given_image):
+    ### gaussian smoothing
+    gaussianKernel = ee.Kernel.gaussian(
+      radius = 5,
       units = 'pixels'
     )
     
@@ -210,24 +233,27 @@ def obj_class(ee_item_given, given_segmented, train_scale = 1, train_pixels = 10
 
 
 
-def pb_class(ee_item_list, stdrd_image, max_clusters):
-    standardized = stdrd_image
+def pb_class(ee_item_list, image, max_clusters, classifier = None):
     shp = ee_item_list
     
-    gauss = gauss_smooth_func(standardized)
-    gauss = dog_sharp(gauss)
-    
-    pb_training = gauss.sample(
+    pb_training = image.sample(
       region = shp,
       scale = 1, #change depending on year
       numPixels = 10000
     )
-    pb_clusterer = ee.Clusterer.wekaXMeans(maxClusters = max_clusters, # change clusters depending on imagery
-                                        maxIterations = 5, 
-                                        useKD = True).train(pb_training)
+    if classifier == 'x_means':
+        
+        pb_clusterer = ee.Clusterer.wekaXMeans(maxClusters = max_clusters, # change clusters depending on imagery
+                                            maxIterations = 5, 
+                                            useKD = True).train(pb_training)
+        pixel_based_result = image.cluster(pb_clusterer)
+        return pixel_based_result
+    else:
+        pb_clusterer = ee.Clusterer.wekaKMeans(nClusters = max_clusters, # change clusters depending on imagery
+                                             seed = 32).train(pb_training)
     
-    pixel_based_result = gauss.cluster(pb_clusterer)
-    return pixel_based_result
+        pixel_based_result = image.cluster(pb_clusterer)
+        return pixel_based_result
 
 def pasture_visualizer(ee_item_list, given_geometry, stdrd_image, seed_space, grid_type):
     standardized = stdrd_image
