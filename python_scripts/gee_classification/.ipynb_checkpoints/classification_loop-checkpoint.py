@@ -79,45 +79,61 @@ def download_classified(folder_directory, data_folder, shp_dir, scale = 1):
             # standardizing the imagery
             standardized = mgf.stdrd_func(glcm_segment, feature_collection)
             
-            # point-based algorithm
+            # point-based classification algorithm
             max_clusters = 10 # tested with 10
-            
-            classified = mgf.pb_class(feature_collection, standardized, max_clusters)
+            classified_image = mgf.pb_class(feature_collection, standardized, max_clusters)
 
+            # Generate a fishnet grid over the AOI (set cell size in degrees or meters)
+            fishnet = geemap.fishnet(feature_geom, rows=5, cols=5)
 
-            # creating a path for the classified image to export to
-            filename = f'{folder_directory}/{data_folder}/cell_{index_num}_env_image.tif'
-            # export the final classified image
-            geemap.ee_export_image(classified, filename, scale, region = feature_geom)
-            print(f'Export task started for {shp_file}.')
+            # Convert the fishnet (FeatureCollection) to a list of features
+            fishnet_list = fishnet.toList(fishnet.size())
 
-                        # Function to log the result to a text file
-            def log_result(status, filename, error_message=None):
-                with open(f"{folder_directory}/task_log.txt", "a") as log_file:
-                    if status == "Data downloaded":
-                        log_file.write(f"{filename}: {status}\n")
-                    elif status == "An error occurred":
-                        log_file.write(f"{filename}: {status} (Unknown error)\n")
-                    else:
-                        log_file.write(f"{filename}: {status} (Error: {error_message})\n")
+            grid_cell_num = 0
+            # Loop through each cell of the fishnet and clip the image
+            for i in range(fishnet.size().getInfo()):
+                grid_cell_num = grid_cell_num + 1
+
+                # Get the individual grid cell (Feature)
+                grid_cell = ee.Feature(fishnet_list.get(i)).geometry()
+
+                # Clip the classified image by the current grid cell
+                clipped_image = classified_image.clip(grid_cell)
+
+                # creating a path for the classified image to export to
+                cellname = f'cell_{index_num}_gridcell_{grid_cell_num}_classified'
+                filename = f'{folder_directory}/{data_folder}/{cellname}.tif'
             
-            # Redirect console output
-            old_stdout = sys.stdout
-            sys.stdout = buffer = io.StringIO()
-    
-            # Restore console output
-            sys.stdout = old_stdout
-    
-            # Capture the console output as a string
-            output = buffer.getvalue()
+                geemap.ee_export_image(clipped_image, filename, scale, region = grid_cell)
+                print(f'Export task started for {cellname}.')
+
+                # Function to log the result to a text file
+                def log_result(status, filename, error_message=None):
+                    with open(f"{folder_directory}/task_log.txt", "a") as log_file:
+                        if status == "Data downloaded":
+                            log_file.write(f"{cellname}: {status}\n")
+                        elif status == "An error occurred":
+                            log_file.write(f"{cellname}: {status} (Unknown error)\n")
+                        else:
+                            log_file.write(f"{cellname}: {status} (Error: {error_message})\n")
             
-            # Check if the image was saved
-            if "Data downloaded" in output:
-                log_result("Success", filename)
-            else:
-                log_result("An error occurred", filename)
+                # Redirect console output
+                old_stdout = sys.stdout
+                sys.stdout = buffer = io.StringIO()
+        
+                # Restore console output
+                sys.stdout = old_stdout
+        
+                # Capture the console output as a string
+                output = buffer.getvalue()
+                
+                # Check if the image was saved
+                if "Data downloaded" in output:
+                    log_result("Success", cellname)
+                else:
+                    log_result("An error occurred", cellname)
             
-            time.sleep(15)
+                time.sleep(15)
             
                 
         else:
