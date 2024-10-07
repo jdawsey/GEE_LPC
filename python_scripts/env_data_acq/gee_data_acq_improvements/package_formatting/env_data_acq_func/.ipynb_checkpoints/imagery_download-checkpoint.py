@@ -12,6 +12,16 @@ shp_dir = the directory address to the folder containing each of the shapefiles.
 """
 def imagery_download(folder_directory, data_folder, image_stack, shp_dir, 
                      scale = 30):
+    # cleaning out any extra files in case ran previously
+    delete_file_path = f'{shp_dir}/'
+    delete_file_paths = os.listdir(delete_file_path)
+    for file in delete_file_paths:
+        if (re.search(r'[0-9]_gcs+', file)) or (re.search(r'[a-zA-Z]_gcs+', file)):
+            full_path = f'{delete_file_path}{file}'
+            print(full_path)
+            os.remove(full_path)
+            print(f'removed {file}')
+    
     shp_files = [f for f in os.listdir(shp_dir) if f.endswith('.shp')]
 
     count = 0
@@ -24,26 +34,13 @@ def imagery_download(folder_directory, data_folder, image_stack, shp_dir,
     
     index_num = -1
     for shp_file in shp_files:
-        regex_gcs = re.compile(r'[0-9]_gcs+')
-        if (regex_gcs.search(shp_file) == None) == True:
-            index_num = index_num + 1
-            shp_path = os.path.join(shp_dir, shp_file)
-            feature_collection = geemap.shp_to_ee(shp_path)
-            feature = feature_collection.geometry()
-            image_path = f'{folder_directory}/{data_folder}/cell_{index_num}_env_image.tif'
-            geemap.ee_export_image(image_stack, image_path, scale, region = feature)
-            print(f'Export task started for {shp_file}.')
-            time.sleep(15)
-                
-        else:
-            print("skipping gcs file")
-
-    
-    regex_gcs = re.compile(r'[0-9]_gcs+')
-    delete_file_path = f'{shp_dir}/'
-    delete_file_paths = os.listdir(delete_file_path)
-    for file in delete_file_paths:
-        full_path = f'{delete_file_path}{file}'
-        if (regex_gcs.search(full_path) == None) == False:
-            os.remove(full_path)
-            print(f'removed {full_path}')
+        index_num = index_num + 1
+        file_name_split = shp_file.split(".")
+        
+        shp_path = os.path.join(shp_dir, shp_file)
+        feature_collection = geemap.shp_to_ee(shp_path)
+        feature = feature_collection.geometry()
+        image_path = f'{folder_directory}/{data_folder}/{file_name_split[0]}_env_image.tif'
+        geemap.ee_export_image(image_stack, image_path, scale, region = feature)
+        print(f'Export task started for {shp_file}.')
+        time.sleep(15)
