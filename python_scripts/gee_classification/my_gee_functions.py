@@ -22,6 +22,17 @@ def ee_list_func(given_json_list):
     
     return ee_item_list
 
+def naip_imagery(ee_item_list):
+    ee_items = ee_item_list
+    #poly_num = given_geometry
+    shp = ee_items # list
+    
+    year = ee.ImageCollection('USDA/NAIP/DOQQ').filterDate('2016-01-01', '2016-12-31').filterBounds(shp)
+    
+    year = year.mosaic() # mosaicing so that becomes a single image that can be worked with
+    clip = year.clip(shp) # clip to the polygon bounds
+    return clip
+
 def naip_savi_endvi(given_image):
     func_img = given_image
     
