@@ -6,9 +6,19 @@ import geemap
 
 """
 Formerly known as "process_shp_files".
-Adds environmental data to points. Takes the directory of the parent folders, the name of the folder data is benig added to, and the directory of the shapefiles containing points.
+Adds environmental data to points. Takes the directory of the parent folders, the name of the folder data is being added to, and the directory of the shapefiles containing points.
 """
 def env_data_to_points(folder_directory, data_folder, image_stack, shp_dir):
+    # cleaning out any extra files in case ran previously
+    delete_file_path = f'{shp_dir}/'
+    delete_file_paths = os.listdir(delete_file_path)
+    for file in delete_file_paths:
+        if (re.search(r'[0-9]_gcs+', file)) or (re.search(r'[a-zA-Z]_gcs+', file)):
+            full_path = f'{delete_file_path}{file}'
+            print(full_path)
+            os.remove(full_path)
+            print(f'removed {file}')
+    
     shp_files = [f for f in os.listdir(shp_dir) if f.endswith('.shp')]
     
     count = len(shp_files)
@@ -16,9 +26,30 @@ def env_data_to_points(folder_directory, data_folder, image_stack, shp_dir):
 
     index_num = -1
     for shp_file in shp_files:
-        regex_gcs = re.compile(r'[0-9]_gcs+')
-        if not regex_gcs.search(shp_file):
-            #if get_segment_attributes is True:
+        #if get_segment_attributes is True:
+        index_num += 1
+        shp_path = os.path.join(shp_dir, shp_file)
+        
+        try:
+            feature_collection = geemap.shp_to_ee(shp_path)
+        except Exception as e:
+            print(f"Error converting shapefile to ee.FeatureCollection: {e}")
+            continue
+
+        out_csv = f'{folder_directory}/{data_folder}/cell_{index_num}_with_env_data.csv'
+        try:
+            scaled_stack = image_stack.multiply(10000).toShort()
+            response = geemap.extract_values_to_points(feature_collection, scaled_stack, out_csv)
+            #print(f"Response: {response}")
+        except Exception as e:
+            print(f"Error extracting values to points: {e}")
+            continue
+
+        print(f'Export task started for {shp_file}.')
+        response
+        time.sleep(15)
+            
+        """else:
             index_num += 1
             shp_path = os.path.join(shp_dir, shp_file)
             
@@ -31,44 +62,14 @@ def env_data_to_points(folder_directory, data_folder, image_stack, shp_dir):
             out_csv = f'{folder_directory}/{data_folder}/cell_{index_num}_with_env_data.csv'
             try:
                 response = geemap.extract_values_to_points(feature_collection, image_stack, out_csv)
-                #print(f"Response: {response}")
+                print(f"Response: {response}")
             except Exception as e:
                 print(f"Error extracting values to points: {e}")
                 continue
 
             print(f'Export task started for {shp_file}.')
-            response
             time.sleep(15)
-            
-            """else:
-                index_num += 1
-                shp_path = os.path.join(shp_dir, shp_file)
-                
-                try:
-                    feature_collection = geemap.shp_to_ee(shp_path)
-                except Exception as e:
-                    print(f"Error converting shapefile to ee.FeatureCollection: {e}")
-                    continue
-
-                out_csv = f'{folder_directory}/{data_folder}/cell_{index_num}_with_env_data.csv'
-                try:
-                    response = geemap.extract_values_to_points(feature_collection, image_stack, out_csv)
-                    print(f"Response: {response}")
-                except Exception as e:
-                    print(f"Error extracting values to points: {e}")
-                    continue
-
-                print(f'Export task started for {shp_file}.')
-                time.sleep(15)
-                """
-        else:
-            print("skipping gcs file")
-
-    delete_file_paths = [f for f in os.listdir(shp_dir) if regex_gcs.search(f)]
-    for file in delete_file_paths:
-        full_path = os.path.join(shp_dir, file)
-        os.remove(full_path)
-        print(f'removed {full_path}')
+            """
 
 
 """
