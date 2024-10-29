@@ -31,7 +31,7 @@ def naip_func(ee_item_list):
     #poly_num = given_geometry
     shp = ee_item_list # list
     
-    year = ee.ImageCollection('USDA/NAIP/DOQQ').filterDate('2016-01-01', '2016-12-31').filterBounds(shp)
+    year = ee.ImageCollection('USDA/NAIP/DOQQ').filterDate('2014-01-01', '2014-12-31').filterBounds(shp)
     
     year = year.mosaic() # mosaicing so that becomes a single image that can be worked with
     clip = year.clip(shp) # clip to the polygon bounds
